@@ -40,7 +40,10 @@ export default function Register() {
     try {
       setIsLoading(true);
       
-      const response = await apiRequest('POST', '/api/auth/register', data);
+      const response = await apiRequest('POST', '/api/auth/register', {
+        ...data,
+        confirmPassword: undefined // Remove confirmPassword before sending
+      });
       
       if (response.ok) {
         // Registration successful, redirect to home page
