@@ -858,42 +858,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(todaysTasks);
       }
       
-      // Generate daily tasks using Mistral AI
-      const allTasks = await generateAllUserDailyTasks(user);
+      // Generate a single daily task using Mistral AI
+      const task = await generateTask(user);
       
-      // Save all tasks to the database
-      const savedTasks = await Promise.all(
-        allTasks.map(task => storage.createTask(task))
-      );
+      // Save the task to the database
+      const savedTask = await storage.createTask(task);
       
-      // For each task, create punishment options
-      for (const task of savedTasks) {
-        const punishments = [
-          // XP punishment (lose the amount that would have been rewarded)
-          storage.createPunishment({
-            taskId: task.id,
-            type: "xp",
-            value: task.xpReward.toString()
-          }),
-          // XPass punishment (third of the XP reward)
-          storage.createPunishment({
-            taskId: task.id,
-            type: "xpass",
-            value: Math.floor(task.xpReward / 3).toString()
-          }),
-          // Physical punishment (based on difficulty)
-          storage.createPunishment({
-            taskId: task.id,
-            type: "physical",
-            value: task.difficulty === "easy" 
-              ? "20 Push-ups" 
-              : task.difficulty === "medium" 
-                ? "35 Burpees" 
-                : "50 Burpees"
-          })
-        ];
-        
-        await Promise.all(punishments);
+      // Create punishment options - now using the failurePenalty from the task
+      // instead of multiple punishment options
+      if (task.failurePenalty) {
+        await storage.createPunishment({
+          taskId: savedTask.id,
+          type: task.failurePenalty.type,
+          value: task.failurePenalty.amount.toString()
+        });
+      } else {
+        // Fallback in case the failurePenalty is not set
+        await storage.createPunishment({
+          taskId: savedTask.id,
+          type: "credits",
+          value: Math.floor(task.xpReward / 3).toString()
+        });
       }
       
       // Update user's lastTaskGenerationDate
@@ -901,11 +886,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastTaskGenerationDate: new Date()
       });
       
-      // Return the saved tasks
-      res.json(savedTasks);
+      // Return the saved task as an array for compatibility
+      res.json([savedTask]);
     } catch (error) {
-      console.error("Error generating daily tasks:", error);
-      res.status(500).json({ message: "Failed to generate daily AI tasks" });
+      console.error("Error generating daily task:", error);
+      res.status(500).json({ message: "Failed to generate daily AI task" });
     }
   });
   
@@ -961,26 +946,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await generateTask(user, undefined, true);
       const savedTask = await storage.createTask(task);
       
-      // Create punishment options for the task
-      const punishments = [
-        storage.createPunishment({
+      // Create punishment option for the task using failurePenalty
+      if (task.failurePenalty) {
+        await storage.createPunishment({
           taskId: savedTask.id,
-          type: "xp",
-          value: savedTask.xpReward.toString()
-        }),
-        storage.createPunishment({
+          type: task.failurePenalty.type,
+          value: task.failurePenalty.amount.toString()
+        });
+      } else {
+        // Fallback in case the failurePenalty is not set
+        await storage.createPunishment({
           taskId: savedTask.id,
-          type: "xpass",
-          value: Math.floor(savedTask.xpReward / 3).toString()
-        }),
-        storage.createPunishment({
-          taskId: savedTask.id,
-          type: "physical",
-          value: "40 Burpees"  // Special challenge always gets a harder punishment
-        })
-      ];
-      
-      await Promise.all(punishments);
+          type: "credits",
+          value: Math.floor(task.xpReward / 3).toString()
+        });
+      }
       
       res.json(savedTask);
     } catch (error) {

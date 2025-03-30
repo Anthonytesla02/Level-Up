@@ -36,6 +36,7 @@ export const tasks = pgTable("tasks", {
   proof: text("proof"), // URL or text proof
   category: text("category"),
   aiRecommendation: text("ai_recommendation"),
+  failurePenalty: json("failure_penalty").$type<{ type: "credits" | "xp", amount: number }>(),
   isSpecialChallenge: boolean("is_special_challenge").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
