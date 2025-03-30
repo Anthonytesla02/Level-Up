@@ -144,8 +144,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: hashedPassword,
       });
 
-      // Store user data in Airtable
-      await airtableService.createUser({
+      // Store user data in Airtable - commented out as we're now using PostgreSQL
+      /*//await airtableService.createUser({});
         id: user.id,
         username: user.username,
         displayName: user.displayName,
@@ -154,8 +154,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         xp: user.xp,
         xpass: user.xpass,
         title: user.title,
-        streak: user.streak
-      });
+        streak: user.streak,
+        isLocked: user.isLocked
+      });*/
       
       // Auto login after registration
       req.login(user, (err) => {
@@ -379,8 +380,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await Promise.all(createPunishments);
       
-      // Save to Airtable
-      await airtableService.createTask(task);
+      // Save to Airtable - commented out as we are now using PostgreSQL
+      //await airtableService.createTask(task);
       
       res.status(201).json(task);
       
@@ -455,19 +456,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         streak: user.streak + 1
       });
       
-      // Update user in Airtable
-      await airtableService.updateUser(user.id, {
-        xp: currentXp,
-        level: newLevel,
-        streak: user.streak + 1
-      });
+      // Update user in Airtable - commented out as we're now using PostgreSQL
+      // await airtableService.updateUser(user.id, {
+      //   xp: currentXp,
+      //   level: newLevel,
+      //   streak: user.streak + 1
+      // });
       
-      // Update task in Airtable
-      await airtableService.updateTask(task.id, {
-        status: "completed",
-        completedAt: new Date(),
-        proof
-      });
+      // Update task in Airtable - commented out as we're now using PostgreSQL
+      // await airtableService.updateTask(task.id, {
+      //   status: "completed",
+      //   completedAt: new Date(),
+      //   proof
+      // });
       
       // Return response with task and user info
       res.json({
@@ -543,11 +544,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isLocked: false // Unlock user
         });
         
-        // Update in Airtable
-        await airtableService.updateUser(user.id, {
-          xp: newXp,
-          isLocked: false
-        });
+        // Update in Airtable - commented out as we are now using PostgreSQL
+        // await airtableService.updateUser(user.id, {
+        //   xp: newXp,
+        //   isLocked: false
+        // });
       } else if (punishment.type === "xpass") {
         const xpassCost = parseInt(punishment.value);
         
@@ -562,11 +563,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isLocked: false // Unlock user
         });
         
-        // Update in Airtable
-        await airtableService.updateUser(user.id, {
-          xpass: user.xpass - xpassCost,
-          isLocked: false
-        });
+        // Update in Airtable - commented out as we are now using PostgreSQL
+        // await airtableService.updateUser(user.id, {
+        //   xpass: user.xpass - xpassCost,
+        //   isLocked: false
+        // });
       } else if (punishment.type === "physical") {
         // For physical punishments, we just unlock the account
         // as we have to trust the user completed the challenge
@@ -574,10 +575,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isLocked: false
         });
         
-        // Update in Airtable
-        await airtableService.updateUser(user.id, {
-          isLocked: false
-        });
+        // Update in Airtable - commented out as we are now using PostgreSQL
+        // await airtableService.updateUser(user.id, {
+        //   isLocked: false
+        // });
       }
       
       // Update the task
@@ -585,10 +586,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "punished"
       });
       
-      // Update in Airtable
-      await airtableService.updateTask(taskId, {
-        status: "punished"
-      });
+      // Update in Airtable - commented out as we are now using PostgreSQL
+      // await airtableService.updateTask(task.id, {
+      //   status: "punished"
+      // });
       
       // Get updated user
       const updatedUser = await storage.getUser(user.id);
@@ -678,8 +679,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await Promise.all(createPunishments);
       
-      // Save to Airtable
-      await airtableService.createTask(task);
+      // Save to Airtable - commented out as we are now using PostgreSQL
+      //await airtableService.createTask(task);
       
       res.status(201).json(task);
       
@@ -722,10 +723,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         xpass: user.xpass + amount
       });
       
-      // Update in Airtable
-      await airtableService.updateUser(user.id, {
-        xpass: user.xpass + amount
-      });
+      // Update in Airtable - commented out as we are now using PostgreSQL
+      // await airtableService.updateUser(user.id, {
+      //   xpass: user.xpass + amount
+      // });
       
       res.json({
         message: "XPass added successfully",
@@ -755,14 +756,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isLocked: true
           });
           
-          // Update in Airtable
-          await airtableService.updateTask(task.id, {
-            status: "failed"
-          });
+          // Update in Airtable - commented out as we are now using PostgreSQL
+          // await airtableService.updateTask(task.id, {
+          //   status: "failed"
+          // });
           
-          await airtableService.updateUser(user.id, {
-            isLocked: true
-          });
+          // await airtableService.updateUser(user.id, {
+          //   isLocked: true
+          // });
           
           // Broadcast task failed
           broadcast({

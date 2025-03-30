@@ -2,8 +2,11 @@ import {
   User, InsertUser, 
   Task, InsertTask, 
   PunishmentOption, InsertPunishmentOption,
-  Achievement, InsertAchievement
+  Achievement, InsertAchievement,
+  users, tasks, punishmentOptions, achievements
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, lt, gt } from "drizzle-orm";
 
 // Interface defining all storage operations
 export interface IStorage {
@@ -33,8 +36,145 @@ export interface IStorage {
   createAchievement(achievement: InsertAchievement): Promise<Achievement>;
 }
 
-// In-memory implementation of storage interface
-export class MemStorage implements IStorage {
+// Database implementation of storage interface
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        level: 1,
+        xp: 0,
+        xpass: 100, // Give users some initial XPass
+        title: "Novice Challenger",
+        streak: 0,
+        isLocked: false
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  // Task operations
+  async getTask(id: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task;
+  }
+
+  async getTasksByUserId(userId: number): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.userId, userId));
+  }
+
+  async getActiveTasksByUserId(userId: number): Promise<Task[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.userId, userId), eq(tasks.status, "active")));
+  }
+
+  async getCompletedTasksByUserId(userId: number): Promise<Task[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.userId, userId), eq(tasks.status, "completed")));
+  }
+
+  async getFailedTasksByUserId(userId: number): Promise<Task[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.userId, userId), eq(tasks.status, "failed")));
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const [task] = await db
+      .insert(tasks)
+      .values({
+        ...insertTask,
+        status: "active",
+        proof: null,
+        completedAt: null
+      })
+      .returning();
+    return task;
+  }
+
+  async updateTask(id: number, taskData: Partial<Task>): Promise<Task | undefined> {
+    const [updatedTask] = await db
+      .update(tasks)
+      .set(taskData)
+      .where(eq(tasks.id, id))
+      .returning();
+    return updatedTask;
+  }
+
+  async getExpiredTasks(): Promise<Task[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.status, "active"), lt(tasks.expiresAt, now)));
+  }
+
+  // Punishment operations
+  async getPunishmentsByTaskId(taskId: number): Promise<PunishmentOption[]> {
+    return await db
+      .select()
+      .from(punishmentOptions)
+      .where(eq(punishmentOptions.taskId, taskId));
+  }
+
+  async createPunishment(insertPunishment: InsertPunishmentOption): Promise<PunishmentOption> {
+    const [punishment] = await db
+      .insert(punishmentOptions)
+      .values(insertPunishment)
+      .returning();
+    return punishment;
+  }
+
+  // Achievement operations
+  async getAchievementsByUserId(userId: number): Promise<Achievement[]> {
+    return await db
+      .select()
+      .from(achievements)
+      .where(eq(achievements.userId, userId));
+  }
+
+  async createAchievement(insertAchievement: InsertAchievement): Promise<Achievement> {
+    const [achievement] = await db
+      .insert(achievements)
+      .values(insertAchievement)
+      .returning();
+    return achievement;
+  }
+}
+
+// In-memory implementation of storage interface - kept for reference
+class MemStorage implements IStorage {
   private users: Map<number, User>;
   private tasks: Map<number, Task>;
   private punishments: Map<number, PunishmentOption>;
@@ -140,7 +280,9 @@ export class MemStorage implements IStorage {
       status: "active",
       proof: null,
       completedAt: null,
-      createdAt: now
+      createdAt: now,
+      category: insertTask.category || null,
+      aiRecommendation: insertTask.aiRecommendation || null
     };
     this.tasks.set(id, task);
     return task;
@@ -194,11 +336,13 @@ export class MemStorage implements IStorage {
     const achievement: Achievement = {
       ...insertAchievement,
       id,
-      createdAt: now
+      createdAt: now,
+      unlockedAt: insertAchievement.unlockedAt || now
     };
     this.achievements.set(id, achievement);
     return achievement;
   }
 }
 
-export const storage = new MemStorage();
+// Switch from MemStorage to DatabaseStorage
+export const storage = new DatabaseStorage();
