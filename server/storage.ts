@@ -7,6 +7,9 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, lt, gt } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 // Interface defining all storage operations
 export interface IStorage {
@@ -34,10 +37,23 @@ export interface IStorage {
   // Achievement operations
   getAchievementsByUserId(userId: number): Promise<Achievement[]>;
   createAchievement(achievement: InsertAchievement): Promise<Achievement>;
+  
+  // Session store for authentication
+  sessionStore: session.Store;
 }
 
 // Database implementation of storage interface
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+  
+  constructor() {
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true
+    });
+  }
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -184,6 +200,8 @@ class MemStorage implements IStorage {
   private taskIdCounter: number;
   private punishmentIdCounter: number;
   private achievementIdCounter: number;
+  
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -195,6 +213,12 @@ class MemStorage implements IStorage {
     this.taskIdCounter = 1;
     this.punishmentIdCounter = 1;
     this.achievementIdCounter = 1;
+    
+    // Setup in-memory session store
+    const MemoryStore = require('memorystore')(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Prune expired entries every 24h
+    });
   }
 
   // User operations

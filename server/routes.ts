@@ -15,8 +15,6 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateTasksWithMistralAI } from "./services/mistralai";
-import { airtableService } from "./services/airtable";
 import { WebSocketServer } from "ws";
 
 // Configure express-session
@@ -30,6 +28,7 @@ const configureSession = (app: Express) => {
         secure: process.env.NODE_ENV === "production",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       },
+      store: storage.sessionStore,
     })
   );
 };
@@ -201,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       loginSchema.parse(req.body);
       
-      passport.authenticate("local", (err, user, info) => {
+      passport.authenticate("local", (err: any, user: any, info: any) => {
         if (err) {
           return next(err);
         }
@@ -641,30 +640,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI routes
-  app.get("/api/ai/suggest", ensureAuthenticated, async (req, res) => {
+  // Suggested task routes (pre-defined, not using AI)
+  app.get("/api/tasks/suggest", ensureAuthenticated, async (req, res) => {
     try {
-      const user = req.user as any;
-      
-      // Get AI-generated task suggestions
-      const suggestions = await generateTasksWithMistralAI(user);
+      // Return pre-defined task suggestions
+      const suggestions = [
+        {
+          title: "Complete a Workout",
+          description: "Exercise for at least 30 minutes today",
+          difficulty: "medium",
+          category: "fitness",
+          proofType: "photo",
+          xpReward: 150,
+        },
+        {
+          title: "Read a Book",
+          description: "Read at least 30 pages of a non-fiction book",
+          difficulty: "easy",
+          category: "personal",
+          proofType: "text",
+          xpReward: 50,
+        },
+        {
+          title: "Learn Something New",
+          description: "Spend 1 hour learning a new skill online",
+          difficulty: "medium",
+          category: "education",
+          proofType: "text",
+          xpReward: 150,
+        },
+        {
+          title: "Meal Preparation",
+          description: "Prepare healthy meals for the next 3 days",
+          difficulty: "hard",
+          category: "health",
+          proofType: "photo",
+          xpReward: 300,
+        },
+        {
+          title: "Mindfulness Meditation",
+          description: "Complete a 15-minute meditation session",
+          difficulty: "easy",
+          category: "mental",
+          proofType: "text",
+          xpReward: 50,
+        }
+      ];
       
       res.json(suggestions);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get AI suggestions" });
+      res.status(500).json({ message: "Failed to get task suggestions" });
     }
   });
 
-  app.post("/api/ai/accept", ensureAuthenticated, async (req, res) => {
+  app.post("/api/tasks/accept-suggestion", ensureAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
       const taskData = insertTaskSchema.parse(req.body);
       
-      // Create the AI-suggested task
+      // Create the suggested task
       const task = await storage.createTask({
         ...taskData,
         userId: user.id,
-        createdBy: "ai"
+        createdBy: "suggestion"
       });
       
       // Create punishment options
@@ -692,9 +730,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await Promise.all(createPunishments);
       
-      // Save to Airtable - commented out as we are now using PostgreSQL
-      //await airtableService.createTask(task);
-      
       res.status(201).json(task);
       
       // Broadcast new task
@@ -707,7 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const validationError = fromZodError(error);
         return res.status(400).json({ message: validationError.message });
       }
-      res.status(500).json({ message: "Failed to accept AI suggestion" });
+      res.status(500).json({ message: "Failed to accept task suggestion" });
     }
   });
 
