@@ -1,42 +1,59 @@
 import { useState } from 'react';
 import { useAirtable } from '@/hooks/useAirtable';
+import { useMistralAI } from '@/hooks/useMistralAI';
 import { Task } from '@shared/schema';
 import { useSound } from '@/hooks/useSound';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AISuggested() {
-  const { useAiSuggestions, useAcceptAiTask } = useAirtable();
-  const { data: suggestions, isLoading } = useAiSuggestions();
+  const { useAcceptAiTask } = useAirtable();
+  const { useGenerateDailyTasks } = useMistralAI();
+  
+  // Use a random difficulty each time
+  const difficulties = ['easy', 'medium', 'hard'] as const;
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(
+    difficulties[Math.floor(Math.random() * difficulties.length)]
+  );
+  
+  const { data: suggestion, isLoading, refetch } = useAirtable().useAiSuggestions(difficulty);
   const acceptTask = useAcceptAiTask();
+  const generateDailyTasks = useGenerateDailyTasks();
   const { playSound } = useSound();
   
-  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0);
-  
-  const handleAcceptQuest = (task: any) => {
+  const handleAcceptQuest = (task: Task) => {
     playSound('buttonClick');
+    
+    // Calculate expiry time (24 hours from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    
     acceptTask.mutate({
       title: task.title,
       description: task.description,
       difficulty: task.difficulty,
       xpReward: task.xpReward,
       proofType: task.proofType,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+      expiresAt,
       category: task.category,
       aiRecommendation: task.aiRecommendation,
-      createdBy: 'ai'
+      isSpecialChallenge: task.isSpecialChallenge || false
     });
   };
   
   const handleSkip = () => {
     playSound('buttonClick');
-    if (suggestions && suggestions.length > 0) {
-      setCurrentSuggestionIndex((currentSuggestionIndex + 1) % suggestions.length);
-    }
+    
+    // Change to a random difficulty
+    const newDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+    setDifficulty(newDifficulty);
+    
+    // Refetch with the new difficulty
+    refetch();
   };
   
-  const handleSeeAll = () => {
+  const handleGenerateDailyTasks = () => {
     playSound('buttonClick');
-    // Could navigate to an AI suggestions page
+    generateDailyTasks.mutate();
   };
   
   if (isLoading) {
@@ -64,20 +81,36 @@ export function AISuggested() {
     );
   }
   
-  if (!suggestions || suggestions.length === 0) return null;
-  
-  const currentSuggestion = suggestions[currentSuggestionIndex];
+  if (!suggestion) {
+    return (
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-rajdhani font-semibold text-lg text-foreground">AI Tasks</h3>
+          <button 
+            className="text-xs text-primary"
+            onClick={handleGenerateDailyTasks}
+            disabled={generateDailyTasks.isPending}
+          >
+            {generateDailyTasks.isPending ? 'Generating...' : 'Generate Daily Tasks'}
+          </button>
+        </div>
+        
+        <div className="glass-panel rounded-xl p-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            No AI suggestions available. Try generating daily tasks or check back later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-8">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-rajdhani font-semibold text-lg text-foreground">AI Suggested</h3>
-        <button 
-          className="text-xs text-primary"
-          onClick={handleSeeAll}
-        >
-          See All
-        </button>
+        <div className="text-xs px-2 py-1 rounded-full bg-secondary/20 text-secondary">
+          {difficulty.toUpperCase()}
+        </div>
       </div>
       
       <div className="glass-panel rounded-xl p-4">
@@ -90,11 +123,17 @@ export function AISuggested() {
           
           <div>
             <h4 className="font-rajdhani font-semibold text-sm text-foreground mb-1">
-              {currentSuggestion.title}
+              {suggestion.title}
             </h4>
             <p className="text-xs text-muted-foreground">
-              {currentSuggestion.description}
+              {suggestion.description}
             </p>
+            
+            {suggestion.aiRecommendation && (
+              <p className="text-xs text-primary mt-2 italic">
+                AI: {suggestion.aiRecommendation}
+              </p>
+            )}
           </div>
         </div>
         
@@ -109,7 +148,7 @@ export function AISuggested() {
           
           <button 
             className="bg-primary rounded-lg px-4 py-2 text-sm text-primary-foreground"
-            onClick={() => handleAcceptQuest(currentSuggestion)}
+            onClick={() => handleAcceptQuest(suggestion as Task)}
             disabled={acceptTask.isPending}
           >
             {acceptTask.isPending ? 'Accepting...' : 'Accept Quest'}

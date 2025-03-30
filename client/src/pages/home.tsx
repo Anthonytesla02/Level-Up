@@ -4,6 +4,7 @@ import { ProgressBar } from '@/components/home/ProgressBar';
 import { DailyStats } from '@/components/home/DailyStats';
 import { ActiveQuests } from '@/components/home/ActiveQuests';
 import { AISuggested } from '@/components/home/AISuggested';
+import { DailyChallenge } from '@/components/home/DailyChallenge';
 import { BottomNavigation } from '@/components/layout/BottomNavigation';
 import { LevelUpModal } from '@/components/modals/LevelUpModal';
 import { useAirtable } from '@/hooks/useAirtable';
@@ -13,6 +14,9 @@ export default function Home() {
   const [levelUpData, setLevelUpData] = useState<{ level: number, title: string }>({ level: 1, title: "" });
   const { useUser } = useAirtable();
   const { data: user } = useUser();
+  
+  // Type assertion for user data
+  const userData = user as { level: number, title: string } | undefined;
   
   const handleCreateTask = () => {
     // Use the global controller to open the create task modal
@@ -28,25 +32,25 @@ export default function Home() {
       const levelUpLSKey = 'solo-leveling-last-level';
       
       // Check if user data is available
-      if (user) {
+      if (userData) {
         const lastLevel = localStorage.getItem(levelUpLSKey);
         
         // If we have a last level stored and it's less than current level, show level up
-        if (lastLevel && parseInt(lastLevel) < user.level) {
+        if (lastLevel && parseInt(lastLevel) < userData.level) {
           setLevelUpData({
-            level: user.level,
-            title: user.title
+            level: userData.level,
+            title: userData.title
           });
           setShowLevelUp(true);
         }
         
         // Store current level
-        localStorage.setItem(levelUpLSKey, user.level.toString());
+        localStorage.setItem(levelUpLSKey, userData.level.toString());
       }
     };
     
     checkForLevelUp();
-  }, [user]);
+  }, [userData]);
   
   const handleLevelUpClose = () => {
     setShowLevelUp(false);
@@ -58,6 +62,7 @@ export default function Home() {
         <UserStatusBar />
         <ProgressBar />
         <DailyStats />
+        <DailyChallenge />
         <ActiveQuests />
         <AISuggested />
       </main>

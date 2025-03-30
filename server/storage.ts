@@ -250,6 +250,7 @@ class MemStorage implements IStorage {
       title: "Novice Challenger",
       streak: 0,
       lastLoginDate: now,
+      lastTaskGenerationDate: null, // Initialize with null
       isLocked: false,
       createdAt: now
     };
@@ -306,7 +307,8 @@ class MemStorage implements IStorage {
       completedAt: null,
       createdAt: now,
       category: insertTask.category || null,
-      aiRecommendation: insertTask.aiRecommendation || null
+      aiRecommendation: insertTask.aiRecommendation || null,
+      isSpecialChallenge: insertTask.isSpecialChallenge ?? false
     };
     this.tasks.set(id, task);
     return task;

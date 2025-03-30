@@ -16,6 +16,11 @@ import {
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { WebSocketServer } from "ws";
+import { 
+  generateTask, 
+  generateAllUserDailyTasks, 
+  shouldGenerateTasksToday 
+} from "./services/mistralai";
 
 // Configure express-session
 const configureSession = (app: Express) => {
@@ -827,6 +832,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error checking expired tasks:", error);
     }
   }, 60 * 1000); // Check every minute
+
+  // AI Task Generation Routes
+  app.get("/api/ai/daily-tasks", ensureAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Check if we've already generated tasks today
+      const shouldGenerate = shouldGenerateTasksToday(user.lastTaskGenerationDate);
+      
+      if (!shouldGenerate) {
+        // Return existing active tasks filtered by those generated today
+        const tasks = await storage.getActiveTasksByUserId(user.id);
+        
+        // We need to filter by createdAt to get today's tasks
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const todaysTasks = tasks.filter(task => {
+          const taskDate = new Date(task.createdAt);
+          taskDate.setHours(0, 0, 0, 0);
+          return taskDate.getTime() === today.getTime();
+        });
+        
+        return res.json(todaysTasks);
+      }
+      
+      // Generate daily tasks using Mistral AI
+      const allTasks = await generateAllUserDailyTasks(user);
+      
+      // Save all tasks to the database
+      const savedTasks = await Promise.all(
+        allTasks.map(task => storage.createTask(task))
+      );
+      
+      // For each task, create punishment options
+      for (const task of savedTasks) {
+        const punishments = [
+          // XP punishment (lose the amount that would have been rewarded)
+          storage.createPunishment({
+            taskId: task.id,
+            type: "xp",
+            value: task.xpReward.toString()
+          }),
+          // XPass punishment (third of the XP reward)
+          storage.createPunishment({
+            taskId: task.id,
+            type: "xpass",
+            value: Math.floor(task.xpReward / 3).toString()
+          }),
+          // Physical punishment (based on difficulty)
+          storage.createPunishment({
+            taskId: task.id,
+            type: "physical",
+            value: task.difficulty === "easy" 
+              ? "20 Push-ups" 
+              : task.difficulty === "medium" 
+                ? "35 Burpees" 
+                : "50 Burpees"
+          })
+        ];
+        
+        await Promise.all(punishments);
+      }
+      
+      // Update user's lastTaskGenerationDate
+      await storage.updateUser(user.id, {
+        lastTaskGenerationDate: new Date()
+      });
+      
+      // Return the saved tasks
+      res.json(savedTasks);
+    } catch (error) {
+      console.error("Error generating daily tasks:", error);
+      res.status(500).json({ message: "Failed to generate daily AI tasks" });
+    }
+  });
+  
+  // Get a single AI-generated task
+  app.get("/api/ai/suggest", ensureAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const difficulty = req.query.difficulty as "easy" | "medium" | "hard" | undefined;
+      const isSpecialChallenge = req.query.special === "true";
+      
+      // Generate a task with the specified parameters
+      const task = await generateTask(user, difficulty, isSpecialChallenge);
+      
+      // Don't save the task directly - just return it as a suggestion
+      // The frontend will send it back via /api/tasks if the user accepts
+      res.json(task);
+    } catch (error) {
+      console.error("Error getting task suggestion:", error);
+      res.status(500).json({ message: "Failed to generate task suggestion" });
+    }
+  });
+  
+  // Get daily special challenge
+  app.get("/api/ai/daily-challenge", ensureAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Look for today's special challenge
+      const tasks = await storage.getActiveTasksByUserId(user.id);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todaysSpecialChallenge = tasks.find(task => {
+        const taskDate = new Date(task.createdAt);
+        taskDate.setHours(0, 0, 0, 0);
+        return taskDate.getTime() === today.getTime() && task.isSpecialChallenge;
+      });
+      
+      if (todaysSpecialChallenge) {
+        return res.json(todaysSpecialChallenge);
+      }
+      
+      // If we don't have one yet, check if we should generate all daily tasks
+      const shouldGenerate = shouldGenerateTasksToday(user.lastTaskGenerationDate);
+      
+      if (shouldGenerate) {
+        // Redirect to the daily tasks endpoint to generate everything
+        return res.redirect(307, "/api/ai/daily-tasks");
+      }
+      
+      // If we're here, we should have tasks but no challenge for some reason
+      // Generate just the special challenge
+      const task = await generateTask(user, undefined, true);
+      const savedTask = await storage.createTask(task);
+      
+      // Create punishment options for the task
+      const punishments = [
+        storage.createPunishment({
+          taskId: savedTask.id,
+          type: "xp",
+          value: savedTask.xpReward.toString()
+        }),
+        storage.createPunishment({
+          taskId: savedTask.id,
+          type: "xpass",
+          value: Math.floor(savedTask.xpReward / 3).toString()
+        }),
+        storage.createPunishment({
+          taskId: savedTask.id,
+          type: "physical",
+          value: "40 Burpees"  // Special challenge always gets a harder punishment
+        })
+      ];
+      
+      await Promise.all(punishments);
+      
+      res.json(savedTask);
+    } catch (error) {
+      console.error("Error getting daily challenge:", error);
+      res.status(500).json({ message: "Failed to get daily challenge" });
+    }
+  });
 
   return httpServer;
 }

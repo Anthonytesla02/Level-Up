@@ -97,9 +97,29 @@ export function useAirtable() {
   };
 
   // AI related functions
-  const useAiSuggestions = () => {
+  const useAiSuggestions = (difficulty?: 'easy' | 'medium' | 'hard') => {
     return useQuery({ 
-      queryKey: ['/api/ai/suggest'], 
+      queryKey: ['/api/ai/suggest', difficulty], 
+      queryFn: () => {
+        const url = difficulty 
+          ? `/api/ai/suggest?difficulty=${difficulty}` 
+          : '/api/ai/suggest';
+        return fetch(url).then(res => res.json());
+      },
+      retry: false
+    });
+  };
+
+  const useDailyChallenge = () => {
+    return useQuery({
+      queryKey: ['/api/ai/daily-challenge'],
+      retry: false
+    });
+  };
+
+  const useDailyTasks = () => {
+    return useQuery({
+      queryKey: ['/api/ai/daily-tasks'],
       retry: false
     });
   };
@@ -107,7 +127,7 @@ export function useAirtable() {
   const useAcceptAiTask = () => {
     const mutation = useMutation({
       mutationFn: (task: Partial<Task>) => 
-        apiRequest('POST', '/api/ai/accept', task),
+        apiRequest('POST', '/api/tasks', task),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
         queryClient.invalidateQueries({ queryKey: ['/api/tasks/active'] });
@@ -149,6 +169,8 @@ export function useAirtable() {
     useCompleteTask,
     useApplyPunishment,
     useAiSuggestions,
+    useDailyChallenge,
+    useDailyTasks,
     useAcceptAiTask,
     useAchievements,
     useAddXPass

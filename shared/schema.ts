@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   title: text("title").notNull().default("Novice Challenger"),
   streak: integer("streak").notNull().default(0),
   lastLoginDate: timestamp("last_login_date").notNull().defaultNow(),
+  lastTaskGenerationDate: timestamp("last_task_generation_date"),
   isLocked: boolean("is_locked").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -35,6 +36,7 @@ export const tasks = pgTable("tasks", {
   proof: text("proof"), // URL or text proof
   category: text("category"),
   aiRecommendation: text("ai_recommendation"),
+  isSpecialChallenge: boolean("is_special_challenge").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -63,6 +65,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
   lastLoginDate: true,
+  lastTaskGenerationDate: true,
   isLocked: true,
 });
 
@@ -72,6 +75,7 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   completedAt: true,
   proof: true,
   status: true,
+  // Note: Don't omit isSpecialChallenge as we need it for the API generated tasks
 });
 
 export const insertPunishmentOptionSchema = createInsertSchema(punishmentOptions).omit({

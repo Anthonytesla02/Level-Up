@@ -1,29 +1,37 @@
 import { useState } from 'react';
 import { apiRequest } from '../lib/queryClient';
 import { Task } from '@shared/schema';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export function useMistralAI() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const generateTask = async (
     difficulty: 'easy' | 'medium' | 'hard',
-    category?: string
+    category?: string,
+    isSpecialChallenge?: boolean
   ): Promise<Task | null> => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await apiRequest('GET', `/api/ai/suggest?difficulty=${difficulty}${category ? `&category=${category}` : ''}`);
+      let url = `/api/ai/suggest?difficulty=${difficulty}`;
+      
+      if (category) {
+        url += `&category=${category}`;
+      }
+      
+      if (isSpecialChallenge) {
+        url += `&special=true`;
+      }
+      
+      const response = await fetch(url);
       const data = await response.json();
       setLoading(false);
       
-      if (data && data.length > 0) {
-        // Return the first task suggestion
-        return data[0];
-      }
-      
-      return null;
+      return data || null;
     } catch (err) {
       setLoading(false);
       setError('Failed to generate AI task');
@@ -32,52 +40,56 @@ export function useMistralAI() {
     }
   };
 
+  // Use React Query for daily tasks generation
+  const useGenerateDailyTasks = () => {
+    return useMutation({
+      mutationFn: async () => {
+        const response = await fetch('/api/ai/daily-tasks');
+        if (!response.ok) {
+          throw new Error('Failed to generate daily tasks');
+        }
+        return response.json();
+      },
+      onSuccess: () => {
+        // Invalidate all task-related queries when we generate new tasks
+        queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/tasks/active'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/ai/daily-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/ai/daily-challenge'] });
+      }
+    });
+  };
+
+  // Get the special daily challenge
+  const useDailyChallenge = () => {
+    return useQuery({
+      queryKey: ['/api/ai/daily-challenge'],
+      retry: false
+    });
+  };
+
+  // Fallback analysis function if we don't have a backend route for this
   const analyzeDifficulty = async (
     title: string,
     description: string
-  ): Promise<{ difficulty: 'easy' | 'medium' | 'hard', xpReward: number } | null> => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await apiRequest('POST', '/api/ai/analyze', {
-        title,
-        description
-      });
-      
-      const data = await response.json();
-      setLoading(false);
-      
-      if (data && data.difficulty && data.xpReward) {
-        return {
-          difficulty: data.difficulty,
-          xpReward: data.xpReward
-        };
-      }
-      
-      // If the API fails, make a best guess based on title/description length
-      const totalLength = (title.length + description.length);
-      
-      if (totalLength < 50) {
-        return { difficulty: 'easy', xpReward: 50 };
-      } else if (totalLength < 100) {
-        return { difficulty: 'medium', xpReward: 150 };
-      } else {
-        return { difficulty: 'hard', xpReward: 250 };
-      }
-    } catch (err) {
-      setLoading(false);
-      setError('Failed to analyze task difficulty');
-      console.error('Error analyzing task difficulty:', err);
-      
-      // Default to medium if there's an error
+  ): Promise<{ difficulty: 'easy' | 'medium' | 'hard', xpReward: number }> => {
+    // Make a best guess based on title/description length
+    const totalLength = (title.length + description.length);
+    
+    if (totalLength < 50) {
+      return { difficulty: 'easy', xpReward: 50 };
+    } else if (totalLength < 100) {
       return { difficulty: 'medium', xpReward: 150 };
+    } else {
+      return { difficulty: 'hard', xpReward: 300 };
     }
   };
 
   return {
     generateTask,
     analyzeDifficulty,
+    useGenerateDailyTasks,
+    useDailyChallenge,
     loading,
     error
   };
