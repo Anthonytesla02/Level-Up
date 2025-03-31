@@ -51,29 +51,29 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
     try {
       playSound('buttonClick');
       setAnalyzing(true);
-      
+
       // Calculate expiration time
       const totalMinutes = (data.expirationHours * 60) + data.expirationMinutes;
       const expiresAt = new Date(Date.now() + totalMinutes * 60 * 1000);
-      
+
       // Set XP reward based on difficulty
       let difficulty = data.difficulty;
       let xpReward = 50; // Default for easy
-      
+
       if (difficulty === "medium") {
         xpReward = 150;
       } else if (difficulty === "hard") {
         xpReward = 300;
       }
-      
+
       // Auto-set failure penalty based on difficulty
       // Easy tasks lose XP, medium and hard tasks lose credits
       const failurePenalty: { type: "xp" | "credits"; amount: number } = {
         type: difficulty === "easy" ? "xp" : "credits",
         amount: difficulty === "easy" ? 25 : (difficulty === "medium" ? 20 : 35)
       };
-      
-      // Create the task with auto-generated failure penalty
+
+      // Create the task with auto-generated failure penalty and additional fields
       await createTask.mutateAsync({
         title: data.title,
         description: data.description,
@@ -83,14 +83,16 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         expiresAt,
         createdBy: "user",
         category: "user-created", // Add missing required field
-        failurePenalty
+        failurePenalty,
+        userId: 1, // Placeholder - replace with actual user ID
+        status: 'active' // Add status field.
       });
-      
+
       toast({
         title: "Quest Created!",
         description: "Your new quest has been created successfully.",
       });
-      
+
       onClose();
     } catch (error) {
       console.error('Error creating task:', error);
@@ -118,7 +120,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
             </svg>
           </button>
         </div>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mb-6">
           <div>
             <label className="block text-sm text-muted-foreground mb-1">Quest Title</label>
@@ -132,7 +134,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               <p className="text-xs text-destructive mt-1">{form.formState.errors.title.message}</p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm text-muted-foreground mb-1">Description</label>
             <textarea 
@@ -144,7 +146,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               <p className="text-xs text-destructive mt-1">{form.formState.errors.description.message}</p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm text-muted-foreground mb-1">Difficulty</label>
             <div className="grid grid-cols-3 gap-2">
@@ -207,7 +209,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               </button>
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm text-muted-foreground mb-1">Expiration</label>
             <div className="flex space-x-2">
@@ -239,7 +241,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               </div>
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm text-muted-foreground mb-1">Proof Required</label>
             <div className="grid grid-cols-2 gap-2">
@@ -282,7 +284,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               </button>
             </div>
           </div>
-          
+
           <div className="p-3 bg-muted/40 rounded-lg">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -300,7 +302,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               </span>
             </div>
           </div>
-          
+
           <button 
             type="submit" 
             className="bg-primary w-full rounded-lg px-4 py-3 text-sm text-white font-medium"
