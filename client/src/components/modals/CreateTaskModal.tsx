@@ -17,9 +17,7 @@ const createTaskSchema = z.object({
   difficulty: z.enum(["easy", "medium", "hard"]),
   expirationHours: z.coerce.number().min(0).max(72),
   expirationMinutes: z.coerce.number().min(1).max(59).optional().default(30),
-  proofType: z.enum(["photo", "text"]),
-  failurePenaltyType: z.enum(["credits", "xp"]),
-  failurePenaltyAmount: z.coerce.number().min(1).max(100)
+  proofType: z.enum(["photo", "text"])
 });
 
 type FormValues = z.infer<typeof createTaskSchema>;
@@ -40,9 +38,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
       difficulty: "medium",
       expirationHours: 0,
       expirationMinutes: 30,
-      proofType: "photo",
-      failurePenaltyType: "credits",
-      failurePenaltyAmount: 20
+      proofType: "photo"
     }
   });
 
@@ -60,18 +56,24 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
       const totalMinutes = (data.expirationHours * 60) + data.expirationMinutes;
       const expiresAt = new Date(Date.now() + totalMinutes * 60 * 1000);
       
-      // If user selected difficulty, use it, otherwise analyze with AI
+      // Set XP reward based on difficulty
       let difficulty = data.difficulty;
       let xpReward = 50; // Default for easy
       
-      // Set XP reward based on difficulty
       if (difficulty === "medium") {
         xpReward = 150;
       } else if (difficulty === "hard") {
         xpReward = 300;
       }
       
-      // Create the task with failure penalty
+      // Auto-set failure penalty based on difficulty
+      // Easy tasks lose XP, medium and hard tasks lose credits
+      const failurePenalty: { type: "xp" | "credits"; amount: number } = {
+        type: difficulty === "easy" ? "xp" : "credits",
+        amount: difficulty === "easy" ? 25 : (difficulty === "medium" ? 20 : 35)
+      };
+      
+      // Create the task with auto-generated failure penalty
       await createTask.mutateAsync({
         title: data.title,
         description: data.description,
@@ -80,10 +82,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         proofType: data.proofType,
         expiresAt,
         createdBy: "user",
-        failurePenalty: {
-          type: data.failurePenaltyType,
-          amount: data.failurePenaltyAmount
-        }
+        failurePenalty
       });
       
       toast({
@@ -106,11 +105,14 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-background/90">
-      <div className="glass-panel rounded-xl p-6 max-w-sm w-full border border-primary/30 m-4">
-        <div className="flex justify-between items-center mb-4">
+      <div className="glass-panel rounded-xl p-6 max-w-sm w-full border border-primary/30 m-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4 sticky top-0 bg-background z-10 pb-2">
           <h3 className="font-rajdhani font-bold text-xl text-foreground">Create New Quest</h3>
-          <button className="text-muted-foreground" onClick={handleClose}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+          <button 
+            className="text-muted-foreground bg-muted rounded-full p-1 hover:bg-primary/10" 
+            onClick={handleClose}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -147,36 +149,60 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                className={`bg-muted rounded-lg px-4 py-2 text-sm border ${
+                className={`bg-muted rounded-lg px-2 py-2 text-sm border ${
                   form.watch("difficulty") === "easy" 
                     ? "text-[#22C55E] border-[#22C55E]/30" 
                     : "text-muted-foreground border-transparent"
                 }`}
                 onClick={() => form.setValue("difficulty", "easy")}
               >
-                Easy
+                <span className="flex flex-col items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                  </svg>
+                  Easy
+                </span>
               </button>
               <button
                 type="button"
-                className={`bg-muted rounded-lg px-4 py-2 text-sm border ${
+                className={`bg-muted rounded-lg px-2 py-2 text-sm border ${
                   form.watch("difficulty") === "medium" 
                     ? "text-[#F59E0B] border-[#F59E0B]/30" 
                     : "text-muted-foreground border-transparent"
                 }`}
                 onClick={() => form.setValue("difficulty", "medium")}
               >
-                Medium
+                <span className="flex flex-col items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="8" y1="15" x2="16" y2="15"></line>
+                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                  </svg>
+                  Medium
+                </span>
               </button>
               <button
                 type="button"
-                className={`bg-muted rounded-lg px-4 py-2 text-sm border ${
+                className={`bg-muted rounded-lg px-2 py-2 text-sm border ${
                   form.watch("difficulty") === "hard" 
                     ? "text-[#EF4444] border-[#EF4444]/30" 
                     : "text-muted-foreground border-transparent"
                 }`}
                 onClick={() => form.setValue("difficulty", "hard")}
               >
-                Hard
+                <span className="flex flex-col items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M16 16s-1.5-2-4-2-4 2-4 2"></path>
+                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                  </svg>
+                  Hard
+                </span>
               </button>
             </div>
           </div>
@@ -225,7 +251,14 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
                 }`}
                 onClick={() => form.setValue("proofType", "photo")}
               >
-                Photo
+                <span className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  Photo
+                </span>
               </button>
               <button
                 type="button"
@@ -236,48 +269,35 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
                 }`}
                 onClick={() => form.setValue("proofType", "text")}
               >
-                Text
+                <span className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="17" y1="10" x2="3" y2="10" />
+                    <line x1="21" y1="6" x2="3" y2="6" />
+                    <line x1="21" y1="14" x2="3" y2="14" />
+                    <line x1="17" y1="18" x2="3" y2="18" />
+                  </svg>
+                  Text
+                </span>
               </button>
             </div>
           </div>
           
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">Failure Penalty</label>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <button
-                type="button"
-                className={`bg-muted rounded-lg px-4 py-2 text-sm border ${
-                  form.watch("failurePenaltyType") === "credits" 
-                    ? "text-foreground border-primary/30" 
-                    : "text-muted-foreground border-transparent"
-                }`}
-                onClick={() => form.setValue("failurePenaltyType", "credits")}
-              >
-                Credits
-              </button>
-              <button
-                type="button"
-                className={`bg-muted rounded-lg px-4 py-2 text-sm border ${
-                  form.watch("failurePenaltyType") === "xp" 
-                    ? "text-foreground border-primary/30" 
-                    : "text-muted-foreground border-transparent"
-                }`}
-                onClick={() => form.setValue("failurePenaltyType", "xp")}
-              >
-                XP
-              </button>
+          <div className="p-3 bg-muted/40 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span>
+                <strong>Failure penalties</strong> are automatically set based on the difficulty:
+                <ul className="mt-1 ml-5 list-disc text-xs">
+                  <li>Easy: Lose 25 XP</li>
+                  <li>Medium: Lose 20 Credits</li>
+                  <li>Hard: Lose 35 Credits</li>
+                </ul>
+              </span>
             </div>
-            <input 
-              type="number" 
-              className="w-full bg-muted rounded-lg px-4 py-3 text-sm text-foreground border border-primary/20 focus:border-primary focus:outline-none" 
-              placeholder={`Enter ${form.watch("failurePenaltyType")} amount`}
-              min={1}
-              max={100}
-              {...form.register("failurePenaltyAmount")}
-            />
-            {form.formState.errors.failurePenaltyAmount && (
-              <p className="text-xs text-destructive mt-1">{form.formState.errors.failurePenaltyAmount.message}</p>
-            )}
           </div>
           
           <button 

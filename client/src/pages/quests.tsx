@@ -9,9 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Quests() {
   const { useActiveTasks, useCompletedTasks, useTasks } = useAirtable();
-  const { data: activeTasks, isLoading: isLoadingActive } = useActiveTasks();
-  const { data: completedTasks, isLoading: isLoadingCompleted } = useCompletedTasks();
-  const { data: allTasks, isLoading: isLoadingAll } = useTasks();
+  const { data: activeTasks = [] as Task[], isLoading: isLoadingActive } = useActiveTasks();
+  const { data: completedTasks = [] as Task[], isLoading: isLoadingCompleted } = useCompletedTasks();
+  const { data: allTasks = [] as Task[], isLoading: isLoadingAll } = useTasks();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
@@ -32,7 +32,7 @@ export default function Quests() {
   };
   
   // Get failed tasks
-  const failedTasks = allTasks?.filter(task => task.status === "failed") || [];
+  const failedTasks = allTasks.filter((task: Task) => task.status === "failed");
   
   // Loading skeleton
   const QuestsSkeleton = () => (
@@ -92,13 +92,19 @@ export default function Quests() {
               <QuestsSkeleton />
             ) : activeTasks && activeTasks.length > 0 ? (
               <div className="space-y-4 my-4">
-                {activeTasks.map((task) => (
+                {activeTasks.slice(0, 3).map((task: Task) => (
                   <QuestCard 
                     key={task.id} 
                     task={task} 
                     onClick={handleTaskClick}
                   />
                 ))}
+                {activeTasks.length > 3 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    <p>Showing 3 of {activeTasks.length} active quests</p>
+                    <p className="text-xs mt-1">Complete quests to view more</p>
+                  </div>
+                )}
               </div>
             ) : (
               <EmptyState message="No active quests" />
@@ -110,13 +116,18 @@ export default function Quests() {
               <QuestsSkeleton />
             ) : completedTasks && completedTasks.length > 0 ? (
               <div className="space-y-4 my-4">
-                {completedTasks.map((task) => (
+                {completedTasks.slice(0, 3).map((task: Task) => (
                   <QuestCard 
                     key={task.id} 
                     task={task} 
                     onClick={handleTaskClick}
                   />
                 ))}
+                {completedTasks.length > 3 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    <p>Showing 3 of {completedTasks.length} completed quests</p>
+                  </div>
+                )}
               </div>
             ) : (
               <EmptyState message="No completed quests yet" />
@@ -128,13 +139,18 @@ export default function Quests() {
               <QuestsSkeleton />
             ) : failedTasks && failedTasks.length > 0 ? (
               <div className="space-y-4 my-4">
-                {failedTasks.map((task) => (
+                {failedTasks.slice(0, 3).map((task: Task) => (
                   <QuestCard 
                     key={task.id} 
                     task={task} 
                     onClick={handleTaskClick}
                   />
                 ))}
+                {failedTasks.length > 3 && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    <p>Showing 3 of {failedTasks.length} failed quests</p>
+                  </div>
+                )}
               </div>
             ) : (
               <EmptyState message="No failed quests" />

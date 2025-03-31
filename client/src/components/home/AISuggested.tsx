@@ -6,13 +6,21 @@ import { useSound } from '@/hooks/useSound';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AISuggested() {
-  const { useAcceptAiTask } = useAirtable();
+  const { useAcceptAiTask, useActiveTasks } = useAirtable();
   const { useGenerateDailyTasks } = useMistralAI();
+  const { data: activeTasks = [] as Task[] } = useActiveTasks();
   
-  // Use a random difficulty each time
-  const difficulties = ['easy', 'medium', 'hard'] as const;
+  // Set frequencies for difficulty levels (15% Easy, 35% Medium, 50% Hard)
+  const getWeightedRandomDifficulty = () => {
+    const rand = Math.random() * 100;
+    if (rand < 15) return 'easy' as const;
+    if (rand < 50) return 'medium' as const; // 15 + 35 = 50
+    return 'hard' as const;
+  };
+  
+  // Use weighted random difficulty
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(
-    difficulties[Math.floor(Math.random() * difficulties.length)]
+    getWeightedRandomDifficulty()
   );
   
   const { data: suggestion, isLoading, refetch } = useAirtable().useAiSuggestions(difficulty);
@@ -43,9 +51,8 @@ export function AISuggested() {
   const handleSkip = () => {
     playSound('buttonClick');
     
-    // Change to a random difficulty
-    const newDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
-    setDifficulty(newDifficulty);
+    // Change to a weighted random difficulty
+    setDifficulty(getWeightedRandomDifficulty());
     
     // Refetch with the new difficulty
     refetch();
@@ -53,8 +60,15 @@ export function AISuggested() {
   
   const handleGenerateDailyTasks = () => {
     playSound('buttonClick');
-    generateDailyTasks.mutate();
+    
+    // Only allow generating if user has fewer than 3 active tasks
+    if ((activeTasks as Task[]).length < 3) {
+      generateDailyTasks.mutate();
+    }
   };
+  
+  // Check if the user has too many active tasks
+  const hasTooManyActiveTasks = (activeTasks as Task[]).length >= 3;
   
   if (isLoading) {
     return (
@@ -87,18 +101,31 @@ export function AISuggested() {
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-rajdhani font-semibold text-lg text-foreground">AI Tasks</h3>
           <button 
-            className="text-xs text-primary"
+            className={`text-xs ${hasTooManyActiveTasks ? 'text-gray-500' : 'text-primary'}`}
             onClick={handleGenerateDailyTasks}
-            disabled={generateDailyTasks.isPending}
+            disabled={generateDailyTasks.isPending || hasTooManyActiveTasks}
+            title={hasTooManyActiveTasks ? "Complete some active quests before generating new ones" : ""}
           >
-            {generateDailyTasks.isPending ? 'Generating...' : 'Generate Daily Tasks'}
+            {generateDailyTasks.isPending ? 'Generating...' : 
+             hasTooManyActiveTasks ? 'Too Many Active Quests' : 'Generate Daily Tasks'}
           </button>
         </div>
         
         <div className="glass-panel rounded-xl p-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            No AI suggestions available. Try generating daily tasks or check back later.
-          </p>
+          {hasTooManyActiveTasks ? (
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                You have {(activeTasks as Task[]).length} active quests. Complete some quests before generating new ones.
+              </p>
+              <p className="text-xs text-primary">
+                AI recommends focusing on one task at a time for better results
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No AI suggestions available. Try generating daily tasks or check back later.
+            </p>
+          )}
         </div>
       </div>
     );
