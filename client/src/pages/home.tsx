@@ -63,7 +63,8 @@ export default function Home() {
         <ProgressBar />
         <DailyStats />
         <DailyChallenge />
-        <ActiveQuests />
+        {/* Removed ActiveQuests for a cleaner UI */}
+        {/* Kept AISuggested for task generation */}
         <AISuggested />
       </main>
       

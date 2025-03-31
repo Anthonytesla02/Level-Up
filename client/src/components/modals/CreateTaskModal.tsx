@@ -15,9 +15,11 @@ const createTaskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   difficulty: z.enum(["easy", "medium", "hard"]),
-  expirationHours: z.coerce.number().min(1).max(72),
-  expirationMinutes: z.coerce.number().min(0).max(59),
-  proofType: z.enum(["photo", "text"])
+  expirationHours: z.coerce.number().min(0).max(72),
+  expirationMinutes: z.coerce.number().min(1).max(59).optional().default(30),
+  proofType: z.enum(["photo", "text"]),
+  failurePenaltyType: z.enum(["credits", "xp"]),
+  failurePenaltyAmount: z.coerce.number().min(1).max(100)
 });
 
 type FormValues = z.infer<typeof createTaskSchema>;
@@ -36,9 +38,11 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
       title: "",
       description: "",
       difficulty: "medium",
-      expirationHours: 24,
-      expirationMinutes: 0,
-      proofType: "photo"
+      expirationHours: 0,
+      expirationMinutes: 30,
+      proofType: "photo",
+      failurePenaltyType: "credits",
+      failurePenaltyAmount: 20
     }
   });
 
@@ -67,7 +71,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         xpReward = 300;
       }
       
-      // Create the task
+      // Create the task with failure penalty
       await createTask.mutateAsync({
         title: data.title,
         description: data.description,
@@ -75,7 +79,11 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         xpReward,
         proofType: data.proofType,
         expiresAt,
-        createdBy: "user"
+        createdBy: "user",
+        failurePenalty: {
+          type: data.failurePenaltyType,
+          amount: data.failurePenaltyAmount
+        }
       });
       
       toast({
@@ -231,6 +239,45 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
                 Text
               </button>
             </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">Failure Penalty</label>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <button
+                type="button"
+                className={`bg-muted rounded-lg px-4 py-2 text-sm border ${
+                  form.watch("failurePenaltyType") === "credits" 
+                    ? "text-foreground border-primary/30" 
+                    : "text-muted-foreground border-transparent"
+                }`}
+                onClick={() => form.setValue("failurePenaltyType", "credits")}
+              >
+                Credits
+              </button>
+              <button
+                type="button"
+                className={`bg-muted rounded-lg px-4 py-2 text-sm border ${
+                  form.watch("failurePenaltyType") === "xp" 
+                    ? "text-foreground border-primary/30" 
+                    : "text-muted-foreground border-transparent"
+                }`}
+                onClick={() => form.setValue("failurePenaltyType", "xp")}
+              >
+                XP
+              </button>
+            </div>
+            <input 
+              type="number" 
+              className="w-full bg-muted rounded-lg px-4 py-3 text-sm text-foreground border border-primary/20 focus:border-primary focus:outline-none" 
+              placeholder={`Enter ${form.watch("failurePenaltyType")} amount`}
+              min={1}
+              max={100}
+              {...form.register("failurePenaltyAmount")}
+            />
+            {form.formState.errors.failurePenaltyAmount && (
+              <p className="text-xs text-destructive mt-1">{form.formState.errors.failurePenaltyAmount.message}</p>
+            )}
           </div>
           
           <button 
