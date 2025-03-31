@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { useAirtable } from '@/hooks/useAirtable';
 import { QuestCard } from './QuestCard';
-import { TaskDetailScreen } from '../tasks/TaskDetailScreen';
 import { Task } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TaskDetailModal } from '@/components/modals/TaskDetailModal';
+import { useSound } from '@/hooks/useSound';
 
 export function ActiveQuests() {
   const { useActiveTasks } = useAirtable();
-  const { data: tasks, isLoading } = useActiveTasks();
+  const { data: tasks = [] as Task[], isLoading } = useActiveTasks();
+  const { playSound } = useSound();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
   const handleTaskClick = (task: Task) => {
+    playSound('buttonClick');
     setSelectedTask(task);
   };
   
   const handleCloseTaskDetail = () => {
+    playSound('buttonClick');
     setSelectedTask(null);
   };
 
@@ -37,9 +41,9 @@ export function ActiveQuests() {
             </div>
           ))}
         </div>
-      ) : tasks && tasks.length > 0 ? (
+      ) : tasks && (tasks as Task[]).length > 0 ? (
         <div className="space-y-4 mb-8">
-          {tasks.map((task) => (
+          {(tasks as Task[]).map((task: Task) => (
             <QuestCard 
               key={task.id} 
               task={task} 
@@ -71,7 +75,7 @@ export function ActiveQuests() {
       )}
       
       {selectedTask && (
-        <TaskDetailScreen 
+        <TaskDetailModal 
           task={selectedTask} 
           onClose={handleCloseTaskDetail} 
         />

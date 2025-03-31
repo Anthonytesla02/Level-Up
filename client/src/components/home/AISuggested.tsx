@@ -4,11 +4,13 @@ import { useMistralAI } from '@/hooks/useMistralAI';
 import { Task } from '@shared/schema';
 import { useSound } from '@/hooks/useSound';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TaskDetailModal } from '@/components/modals/TaskDetailModal';
 
 export function AISuggested() {
   const { useAcceptAiTask, useActiveTasks } = useAirtable();
   const { useGenerateDailyTasks } = useMistralAI();
   const { data: activeTasks = [] as Task[] } = useActiveTasks();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
   // Set frequencies for difficulty levels (15% Easy, 35% Medium, 50% Hard)
   const getWeightedRandomDifficulty = () => {
@@ -131,6 +133,18 @@ export function AISuggested() {
     );
   }
 
+  const handleOpenDetails = () => {
+    if (suggestion) {
+      playSound('buttonClick');
+      setSelectedTask(suggestion as Task);
+    }
+  };
+
+  const handleCloseDetails = () => {
+    playSound('buttonClick');
+    setSelectedTask(null);
+  };
+
   return (
     <div className="mb-8">
       <div className="flex justify-between items-center mb-3">
@@ -141,7 +155,10 @@ export function AISuggested() {
       </div>
       
       <div className="glass-panel rounded-xl p-4">
-        <div className="flex items-start mb-4">
+        <div 
+          className="flex items-start mb-4 cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={handleOpenDetails}
+        >
           <div className="w-9 h-9 rounded-lg bg-secondary/20 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
@@ -153,14 +170,26 @@ export function AISuggested() {
               {suggestion.title}
             </h4>
             <p className="text-xs text-muted-foreground">
-              {suggestion.description}
+              {suggestion.description.length > 120 
+                ? `${suggestion.description.slice(0, 120)}...` 
+                : suggestion.description}
             </p>
             
             {suggestion.aiRecommendation && (
               <p className="text-xs text-primary mt-2 italic">
-                AI: {suggestion.aiRecommendation}
+                {suggestion.aiRecommendation.length > 100
+                  ? `AI: ${suggestion.aiRecommendation.slice(0, 100)}...`
+                  : `AI: ${suggestion.aiRecommendation}`}
               </p>
             )}
+            
+            <div className="mt-2 text-xs text-primary flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-3 h-3 mr-1">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Tap to view details
+            </div>
           </div>
         </div>
         
@@ -182,6 +211,13 @@ export function AISuggested() {
           </button>
         </div>
       </div>
+
+      {selectedTask && (
+        <TaskDetailModal 
+          task={selectedTask} 
+          onClose={handleCloseDetails} 
+        />
+      )}
     </div>
   );
 }

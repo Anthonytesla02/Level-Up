@@ -3,15 +3,17 @@ import { BottomNavigation } from '@/components/layout/BottomNavigation';
 import { useAirtable } from '@/hooks/useAirtable';
 import { Task } from '@shared/schema';
 import { QuestCard } from '@/components/home/QuestCard';
-import { TaskDetailScreen } from '@/components/tasks/TaskDetailScreen';
+import { TaskDetailModal } from '@/components/modals/TaskDetailModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSound } from '@/hooks/useSound';
 
 export default function Quests() {
   const { useActiveTasks, useCompletedTasks, useTasks } = useAirtable();
   const { data: activeTasks = [] as Task[], isLoading: isLoadingActive } = useActiveTasks();
   const { data: completedTasks = [] as Task[], isLoading: isLoadingCompleted } = useCompletedTasks();
   const { data: allTasks = [] as Task[], isLoading: isLoadingAll } = useTasks();
+  const { playSound } = useSound();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
@@ -19,20 +21,23 @@ export default function Quests() {
     // Use the global controller to open the create task modal
     const createTaskButton = document.getElementById('global-create-task');
     if (createTaskButton) {
+      playSound('buttonClick');
       createTaskButton.click();
     }
   };
   
   const handleTaskClick = (task: Task) => {
+    playSound('buttonClick');
     setSelectedTask(task);
   };
   
   const handleCloseTaskDetail = () => {
+    playSound('buttonClick');
     setSelectedTask(null);
   };
   
   // Get failed tasks
-  const failedTasks = allTasks.filter((task: Task) => task.status === "failed");
+  const failedTasks = (allTasks as Task[]).filter((task: Task) => task.status === "failed");
   
   // Loading skeleton
   const QuestsSkeleton = () => (
@@ -90,18 +95,18 @@ export default function Quests() {
           <TabsContent value="active">
             {isLoadingActive ? (
               <QuestsSkeleton />
-            ) : activeTasks && activeTasks.length > 0 ? (
+            ) : (activeTasks as Task[]).length > 0 ? (
               <div className="space-y-4 my-4">
-                {activeTasks.slice(0, 3).map((task: Task) => (
+                {(activeTasks as Task[]).slice(0, 3).map((task: Task) => (
                   <QuestCard 
                     key={task.id} 
                     task={task} 
                     onClick={handleTaskClick}
                   />
                 ))}
-                {activeTasks.length > 3 && (
+                {(activeTasks as Task[]).length > 3 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
-                    <p>Showing 3 of {activeTasks.length} active quests</p>
+                    <p>Showing 3 of {(activeTasks as Task[]).length} active quests</p>
                     <p className="text-xs mt-1">Complete quests to view more</p>
                   </div>
                 )}
@@ -114,18 +119,18 @@ export default function Quests() {
           <TabsContent value="completed">
             {isLoadingCompleted ? (
               <QuestsSkeleton />
-            ) : completedTasks && completedTasks.length > 0 ? (
+            ) : (completedTasks as Task[]).length > 0 ? (
               <div className="space-y-4 my-4">
-                {completedTasks.slice(0, 3).map((task: Task) => (
+                {(completedTasks as Task[]).slice(0, 3).map((task: Task) => (
                   <QuestCard 
                     key={task.id} 
                     task={task} 
                     onClick={handleTaskClick}
                   />
                 ))}
-                {completedTasks.length > 3 && (
+                {(completedTasks as Task[]).length > 3 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
-                    <p>Showing 3 of {completedTasks.length} completed quests</p>
+                    <p>Showing 3 of {(completedTasks as Task[]).length} completed quests</p>
                   </div>
                 )}
               </div>
@@ -162,7 +167,7 @@ export default function Quests() {
       <BottomNavigation onCreateTask={handleCreateTask} />
       
       {selectedTask && (
-        <TaskDetailScreen 
+        <TaskDetailModal 
           task={selectedTask} 
           onClose={handleCloseTaskDetail} 
         />

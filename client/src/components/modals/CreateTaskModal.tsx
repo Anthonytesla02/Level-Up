@@ -82,6 +82,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         proofType: data.proofType,
         expiresAt,
         createdBy: "user",
+        category: "user-created", // Add missing required field
         failurePenalty
       });
       
