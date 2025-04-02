@@ -125,16 +125,35 @@ export async function generateDailyChallenge(user: User): Promise<AITask> {
     const prompt = `Generate 1 special daily challenge for a level ${user.level} user named ${user.displayName}. 
     This should be a unique, engaging task that stands out from regular tasks.
     
+    Challenge requirements:
+    1. It must be highly original and creative - avoid common activities like stair climbing, hiking, or planks
+    2. It should combine multiple skills or domains (e.g., physical + creative, mental + social)
+    3. It must be something that can be completed in a single day but feels special and exciting
+    4. The task should feel like an adventure or a special mission, not just a routine activity
+    5. It should push the user outside their comfort zone in an interesting way
+    
+    For example, DO create challenges like:
+    - "Create and complete a neighborhood photo scavenger hunt with 10 specific items to find and photograph"
+    - "Record a short video teaching someone else a skill you're good at"
+    - "Prepare a dish from a cuisine you've never cooked before and document the process"
+    - "Create a handmade gift for someone and deliver it in person"
+    
+    DON'T create challenges like:
+    - "Climb stairs" or "Take a hike" or "Do planks" (these are overused)
+    - Simple activities that don't feel special or challenging
+    - Multi-day habits or routine activities
+    
     For the challenge, provide:
     1. Title (creative and motivating)
     2. Description (detailed instructions with a sense of adventure)
     3. Difficulty (choose from easy, medium, or hard based on complexity)
-    4. Category (e.g., fitness, productivity, learning, mindfulness, social)
+    4. Category (e.g., fitness, productivity, learning, mindfulness, social, creative)
     5. Proof type needed (photo or text)
     6. XP reward (100-400 depending on difficulty)
-    7. AI recommendation (tips for completing the challenge effectively)
+    7. AI recommendation (specific tips for completing the challenge successfully)
+    8. Failure penalty (an object with type: "credits" and amount: 25-50)
     
-    Format the response as a JSON object with a 'challenge' object containing fields: title, description, difficulty, category, proofType, xpReward, aiRecommendation.`;
+    Format the response as a JSON object with a 'challenge' object containing fields: title, description, difficulty, category, proofType, xpReward, aiRecommendation, failurePenalty.`;
     
     // Make API request to Mistral AI
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -217,18 +236,79 @@ function getFallbackTasksByDifficulty(
 
 // Get fallback daily challenge in case of API failure
 function getDailyChallengeFallback(): AITask {
-  return {
-    title: "Master Your Day Challenge",
-    description: "Plan your entire day in detail, including time blocks for your most important tasks, breaks, exercise, and relaxation. Execute the plan and document your progress throughout the day.",
-    difficulty: "medium",
-    category: "Productivity",
-    proofType: "text",
-    xpReward: 250,
-    aiRecommendation: "Start by identifying your 3 highest priority tasks. Schedule them during your peak energy hours. Build in buffer time between activities and track your progress hourly.",
+  // Create varied daily challenge options
+  const dailyChallenges: Array<{
+    title: string;
+    description: string;
+    difficulty: "easy" | "medium" | "hard";
+    category: string;
+    proofType: "photo" | "text";
+    xpReward: number;
+    aiRecommendation: string;
     failurePenalty: {
-      type: "credits",
-      amount: 25
+      type: "credits" | "xp";
+      amount: number;
+    }
+  }> = [
+    {
+      title: "Photo Storytelling Challenge",
+      description: "Create a visual story by taking 7 photos throughout your day that tell a cohesive narrative. Each photo should represent a chapter in your day's story.",
+      difficulty: "medium",
+      category: "Creative",
+      proofType: "photo",
+      xpReward: 280,
+      aiRecommendation: "Think about your day as a narrative arc with a beginning, middle, and end. Look for moments of contrast, emotion, or visual interest to capture.",
+      failurePenalty: {
+        type: "credits",
+        amount: 30
+      }
     },
+    {
+      title: "Cook From Another Culture",
+      description: "Research and prepare a dish from a cuisine you've never cooked before. Find an authentic recipe, gather the ingredients, and document your cooking process.",
+      difficulty: "medium",
+      category: "Learning",
+      proofType: "photo",
+      xpReward: 250,
+      aiRecommendation: "Start by researching the cultural significance of the dish. Watch videos on proper preparation techniques before starting, and take photos of both the process and final result.",
+      failurePenalty: {
+        type: "credits",
+        amount: 25
+      }
+    },
+    {
+      title: "Random Act of Kindness Marathon",
+      description: "Perform 5 different random acts of kindness in a single day. They must be varied (not all the same type) and impact different people or groups.",
+      difficulty: "medium",
+      category: "Social",
+      proofType: "text",
+      xpReward: 300,
+      aiRecommendation: "Plan your 5 acts in advance. Consider both strangers and people you know. Acts can range from small (paying for someone's coffee) to more involved (helping someone with a task).",
+      failurePenalty: {
+        type: "credits",
+        amount: 35
+      }
+    },
+    {
+      title: "Skill-Teaching Video Challenge",
+      description: "Create a 2-3 minute instructional video teaching someone else a skill you're good at. The video should be clear, engaging, and actually helpful to a beginner.",
+      difficulty: "medium",
+      category: "Learning",
+      proofType: "text",
+      xpReward: 270,
+      aiRecommendation: "Choose a skill you know well but can break down simply. Plan your key points before filming, use good lighting, and practice your explanation a few times before recording.",
+      failurePenalty: {
+        type: "credits",
+        amount: 30
+      }
+    }
+  ];
+  
+  // Select a random daily challenge
+  const selectedChallenge = dailyChallenges[Math.floor(Math.random() * dailyChallenges.length)];
+  return {
+    ...selectedChallenge,
+    // Already have correct types in the array definition
     isSpecialChallenge: true
   };
 }
@@ -238,82 +318,121 @@ function getFallbackTasks(): AITask[] {
   return [
     // Easy tasks
     {
-      title: "Read 10 Pages",
-      description: "Read 10 pages of your current book and make mental notes of key concepts. Consistent reading improves focus, vocabulary, and knowledge retention.",
+      title: "Nature Sketch Challenge",
+      description: "Go outside and sketch something from nature that catches your eye - a plant, cloud formation, or landscape. No artistic skill required - focus on observation.",
       difficulty: "easy",
-      category: "Learning",
-      proofType: "text",
-      xpReward: 70,
-      aiRecommendation: "Find a quiet place without distractions. Take brief notes after each page to improve retention. Try to read at the same time each day to build a habit.",
+      category: "Creative",
+      proofType: "photo",
+      xpReward: 80,
+      aiRecommendation: "Don't worry about making it perfect. The goal is to observe closely and translate what you see to paper. Take a photo of your sketch as proof.",
       failurePenalty: {
         type: "credits",
         amount: 10
       }
     },
     {
-      title: "5-Minute Meditation",
-      description: "Spend 5 minutes in silent meditation, focusing on your breath. This practice reduces stress and improves mental clarity.",
+      title: "5-Minute Hand-Eye Coordination Drill",
+      description: "Practice juggling with 2 small objects for 5 minutes. If you drop them, simply pick up and continue until the time is complete.",
       difficulty: "easy",
-      category: "Mindfulness",
+      category: "Skill",
       proofType: "text",
-      xpReward: 50,
-      aiRecommendation: "Find a quiet spot, sit comfortably, and set a timer. Focus on your breathing, and when your mind wanders, gently bring your attention back to your breath.",
+      xpReward: 60,
+      aiRecommendation: "Start with soft objects like rolled-up socks. Stand near a bed or couch so dropped items don't roll away. Focus on a consistent throwing height and rhythm.",
       failurePenalty: {
         type: "credits",
-        amount: 5
+        amount: 8
+      }
+    },
+    {
+      title: "Memory Palace Exercise",
+      description: "Create a memory palace by associating 10 items you need to remember with specific locations in your home. Walk through your home mentally to recall them in order.",
+      difficulty: "easy",
+      category: "Mental",
+      proofType: "text",
+      xpReward: 70,
+      aiRecommendation: "Make the associations vivid and unusual - the stranger the better for memory retention. Test yourself by writing down all items from memory after an hour.",
+      failurePenalty: {
+        type: "credits",
+        amount: 12
       }
     },
     
     // Medium tasks
     {
-      title: "Complete 30 min Study Session",
-      description: "Focus on your most important subject material without distractions. Use the Pomodoro technique (25 min work, 5 min break) for maximum effectiveness.",
+      title: "Shadow Boxing Routine",
+      description: "Complete 15 minutes of shadow boxing, focusing on proper form, footwork, and combinations. Include basic punches, defensive movements, and at least 5 different combinations.",
       difficulty: "medium",
-      category: "Productivity",
+      category: "Fitness",
       proofType: "text",
-      xpReward: 175,
-      aiRecommendation: "Turn off all notifications during your study session. Set a clear goal for what you want to accomplish. Review what you learned at the end of the session.",
+      xpReward: 200,
+      aiRecommendation: "Start with a 2-minute warm-up. Keep your hands up and maintain a proper stance. Focus on controlled movements rather than speed. Describe your routine and how your body felt afterward.",
       failurePenalty: {
         type: "credits",
-        amount: 20
+        amount: 22
       }
     },
     {
-      title: "Healthy Meal Prep",
-      description: "Prepare a nutritious meal with balanced macronutrients (protein, carbs, and healthy fats). Document your ingredients and cooking process.",
+      title: "Foreign Language Immersion",
+      description: "Watch a 30-minute show or video in a language you're learning without subtitles. Write down 10 new words or phrases you heard and their meanings.",
       difficulty: "medium",
-      category: "Nutrition",
-      proofType: "photo",
+      category: "Learning",
+      proofType: "text",
       xpReward: 180,
-      aiRecommendation: "Include a palm-sized portion of protein, a fist-sized portion of complex carbs, and plenty of colorful vegetables. Use herbs and spices instead of excess salt for flavor.",
+      aiRecommendation: "Choose content slightly above your current level. Watch in 10-minute segments, noting words to look up after each segment. Try to guess meanings from context before checking.",
       failurePenalty: {
         type: "credits",
         amount: 25
       }
     },
+    {
+      title: "Handwritten Letter",
+      description: "Write a handwritten letter (minimum 1 page) to someone important in your life. Be thoughtful, specific, and express gratitude for their impact on you.",
+      difficulty: "medium",
+      category: "Social",
+      proofType: "photo",
+      xpReward: 160,
+      aiRecommendation: "Find a quiet space and reflect before writing. Include specific memories and details about how they've influenced you. Take a photo of the letter (content can be private).",
+      failurePenalty: {
+        type: "credits",
+        amount: 20
+      }
+    },
     
     // Hard tasks
     {
-      title: "Morning Workout Challenge",
-      description: "Complete 20 pushups, 30 squats, and 40 jumping jacks before breakfast. This workout will boost your energy levels for the day and improve your overall fitness.",
+      title: "Master 5 Magic Tricks",
+      description: "Learn and practice 5 basic magic or card tricks until you can perform them smoothly. Prepare a brief performance for someone.",
       difficulty: "hard",
-      category: "Fitness",
-      proofType: "photo",
-      xpReward: 280,
-      aiRecommendation: "For best results, perform this workout within 30 minutes of waking up to maximize metabolic benefits. Maintain proper form for all exercises to prevent injury and ensure maximum effectiveness.",
+      category: "Skill",
+      proofType: "text",
+      xpReward: 320,
+      aiRecommendation: "Start with simple tricks that require minimal props. Practice in front of a mirror until movements feel natural. Focus on the presentation and storytelling aspects of magic.",
       failurePenalty: {
         type: "credits",
         amount: 40
       }
     },
     {
-      title: "Digital Detox",
-      description: "Go 4 hours without using any digital devices (except for essential work). Use this time for deep work, reading, exercise, or connecting with people in person.",
+      title: "Cold Shower Challenge",
+      description: "Take a completely cold shower for at least 3 minutes. Focus on controlled breathing and staying calm despite the discomfort.",
       difficulty: "hard",
-      category: "Wellbeing",
+      category: "Willpower",
       proofType: "text",
-      xpReward: 300,
-      aiRecommendation: "Plan your digital-free hours in advance. Notify contacts that you'll be unavailable. Keep a journal nearby to note any insights or ideas that come up during your detox.",
+      xpReward: 280,
+      aiRecommendation: "Start by taking a few deep breaths before entering. Focus on breathing slowly throughout. Begin with your limbs before exposing your torso and head to the cold water.",
+      failurePenalty: {
+        type: "credits",
+        amount: 35
+      }
+    },
+    {
+      title: "City Explorer Challenge",
+      description: "Visit 5 locations in your city or area that you've never been to before. Take a photo at each location and write a brief reflection on what you discovered.",
+      difficulty: "hard",
+      category: "Adventure",
+      proofType: "photo",
+      xpReward: 350,
+      aiRecommendation: "Research interesting spots beforehand or ask locals for recommendations. Look for hidden gems like small parks, independent shops, viewpoints, or historical markers.",
       failurePenalty: {
         type: "credits",
         amount: 45
@@ -389,15 +508,20 @@ Task requirements:
 3. It must have clear completion criteria
 4. It must be something that can be completed in a single session
 5. Prefer tasks that require real-world action rather than digital activities
+6. The task MUST be original and highly diverse - DO NOT create common repetitive tasks like stair climbing, hiking, or planks
+7. Focus on creative, unique activities that would be interesting to try once
 
 For example, DO generate tasks like:
-- "Run 5km and track your time"
-- "Complete 100 pushups in sets with minimal rest"
-- "Meditate for 30 consecutive minutes without distractions"
-- "Write a 1000-word short story in a single sitting"
-- "Solve 20 difficult math problems"
+- "Create a 30-minute percussion rhythm using household items"
+- "Draw a self-portrait with your non-dominant hand"
+- "Learn and perform a 2-minute dance routine from a video"
+- "Create an origami masterpiece following a tutorial"
+- "Complete 50 jump squats while reciting the lyrics to your favorite song"
+- "Solve a complex Sudoku puzzle in under 30 minutes"
+- "Make a healthy meal from 5 ingredients you've never cooked with before"
 
 DON'T generate tasks like:
+- "Climb stairs" or "Take a hike" or "Do planks" (these are overused)
 - "Wake up early every day for a week"
 - "Drink water throughout the day"
 - "Plan your activities for the day"
@@ -474,23 +598,96 @@ Format the response as a JSON object with fields: title, description, difficulty
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
     
+    // Create more varied fallback tasks with a random selection based on difficulty
+    const hardTasks = [
+      {
+        title: "30-Minute Freestyle Dance Session",
+        description: "Dance freestyle to your favorite music for 30 continuous minutes. Focus on expressing yourself and maintaining high energy throughout.",
+        category: "Fitness",
+        proofType: "photo",
+        aiRecommendation: "Pick upbeat music you love, clear some space in your room, and just let yourself move without judgment. Take a photo of your setup or a sweaty selfie after completion."
+      },
+      {
+        title: "Creative Writing Challenge",
+        description: "Write a 1000-word short story in a single sitting. The story must include these elements: a lost item, a difficult decision, and an unexpected encounter.",
+        category: "Creativity",
+        proofType: "text",
+        aiRecommendation: "Set a timer and focus completely on the story. Don't edit while writing—just get your ideas down and review afterward. Share a brief excerpt as proof."
+      },
+      {
+        title: "Advanced Yoga Flow",
+        description: "Complete a challenging 45-minute yoga flow that includes at least 5 balance poses. Hold each pose for at least 30 seconds.",
+        category: "Fitness",
+        proofType: "photo",
+        aiRecommendation: "Find a quiet space, use a yoga mat if available, and focus on your breathing throughout. Take a photo of yourself in one of the more challenging poses."
+      }
+    ];
+    
+    const mediumTasks = [
+      {
+        title: "Learn a New Song on Any Instrument",
+        description: "Learn to play a new song on any musical instrument you have access to. Practice until you can play it through with minimal mistakes.",
+        category: "Learning",
+        proofType: "text",
+        aiRecommendation: "Choose a song that challenges you but isn't beyond your skill level. Break it down into sections and practice each part separately before putting it all together."
+      },
+      {
+        title: "Declutter and Organize One Space",
+        description: "Select one cluttered area in your home (desk, closet, drawer) and completely reorganize it. Remove unnecessary items and create a functional system.",
+        category: "Productivity",
+        proofType: "photo",
+        aiRecommendation: "Take a before and after photo. Start by removing everything, sorting into keep/donate/trash piles, and then organize what you're keeping."
+      },
+      {
+        title: "Create Digital Art",
+        description: "Using any digital tool available to you, create a piece of digital art that represents your current mood or mindset.",
+        category: "Creativity",
+        proofType: "photo",
+        aiRecommendation: "Don't worry about being perfect - focus on expressing yourself. Try using colors that reflect your emotions and experiment with different digital brushes or tools."
+      }
+    ];
+    
+    const easyTasks = [
+      {
+        title: "Mindful Nature Observation",
+        description: "Spend 20 minutes outside observing nature. Focus on details you normally overlook - patterns in leaves, cloud formations, insect movements, etc.",
+        category: "Mindfulness",
+        proofType: "text",
+        aiRecommendation: "Leave your phone behind or on silent mode. Take mental notes of what you observe and write about your observations afterward as proof."
+      },
+      {
+        title: "Random Act of Kindness",
+        description: "Perform a thoughtful, unexpected act of kindness for someone in your life. This could be making something, helping with a task, or just a meaningful gesture.",
+        category: "Social",
+        proofType: "text",
+        aiRecommendation: "Consider what would be truly meaningful to the recipient. The impact is more important than the size of the gesture."
+      },
+      {
+        title: "Learn 10 New Words",
+        description: "Research and learn 10 new words in your native language or a language you're studying. Create a sentence using each word.",
+        category: "Learning",
+        proofType: "text",
+        aiRecommendation: "Choose words that you might actually use in conversation. Creating sentences helps cement the meanings in your memory."
+      }
+    ];
+    
+    // Select a random task based on difficulty
+    const taskOptions = difficulty === "hard" ? hardTasks : 
+                       difficulty === "medium" ? mediumTasks : 
+                       easyTasks;
+    const randomTask = taskOptions[Math.floor(Math.random() * taskOptions.length)];
+    
     const fallbackTask = {
       userId: user.id,
-      title: difficulty === "hard" ? "Complete 100 Push-ups" : 
-             difficulty === "medium" ? "Read 30 Pages of a Book" : 
-             "10-Minute Focused Meditation",
-      description: difficulty === "hard" ? "Complete 100 push-ups in as few sets as possible. Rest only when necessary. Track each set and total time to completion." : 
-                  difficulty === "medium" ? "Select a challenging book and read 30 pages in a single sitting. Take notes on key concepts or interesting passages." : 
-                  "Meditate for 10 minutes without distractions. Focus on your breath and practice bringing your mind back when it wanders.",
+      title: randomTask.title,
+      description: randomTask.description,
       difficulty: difficulty || "medium",
       xpReward: difficulty === "hard" ? 300 : difficulty === "medium" ? 150 : 50,
       createdBy: "ai",
-      proofType: difficulty === "hard" ? "photo" : "text",
+      proofType: randomTask.proofType,
       expiresAt,
-      category: difficulty === "hard" ? "Fitness" : difficulty === "medium" ? "Learning" : "Mindfulness",
-      aiRecommendation: difficulty === "hard" ? "Divide the 100 push-ups into manageable sets based on your fitness level. If you can do 20 at once, try 5 sets of 20 with minimal rest between sets." : 
-                        difficulty === "medium" ? "Choose a quiet environment without distractions. Put your phone on silent and set a timer for your reading session." : 
-                        "Find a quiet place, sit comfortably, and set a timer. Focus on your breathing, and when your mind wanders, gently bring your attention back.",
+      category: randomTask.category,
+      aiRecommendation: randomTask.aiRecommendation,
       failurePenalty: {
         type: "credits",
         amount: difficulty === "hard" ? 40 : difficulty === "medium" ? 20 : 10
