@@ -1,4 +1,5 @@
 import { Task } from '@shared/schema';
+import React, { useState } from 'react';
 import { useAirtable } from '@/hooks/useAirtable';
 import { useSound } from '@/hooks/useSound';
 import { useToast } from '@/hooks/use-toast';
@@ -36,21 +37,42 @@ export function TaskDetailModal({ task, onClose, onAccept, onComplete }: TaskDet
     }
   };
   
+  const [proof, setProof] = useState("Completed via button");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const handleCompleteTask = () => {
     playSound('buttonClick');
+    setIsSubmitting(true);
     
     // If we have an external completion handler, use it
     if (onComplete) {
       onComplete();
-    } else {
-      // Otherwise use the default handler
-      completeTask.mutate({ 
-        taskId: task.id,
-        proof: "Completed via button" 
-      });
+      onClose();
+      return;
     }
     
-    onClose();
+    // Otherwise use the default handler
+    completeTask.mutate({ 
+      taskId: task.id,
+      proof: proof 
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Quest completed!",
+          description: "You've earned XP for completing this quest",
+          variant: "default" 
+        });
+        onClose();
+      },
+      onError: (error) => {
+        setIsSubmitting(false);
+        toast({
+          title: "Failed to complete quest",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    });
   };
 
   return (
@@ -144,21 +166,49 @@ export function TaskDetailModal({ task, onClose, onAccept, onComplete }: TaskDet
           ) : (
             /* Active task that can be completed */
             task.status === 'active' ? (
-              <div className="flex justify-between">
-                <button 
-                  className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground"
-                  onClick={onClose}
-                >
-                  Close
-                </button>
+              <div className="space-y-4">
+                <div className="bg-muted/30 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium mb-2 text-primary">Proof of Completion</h4>
+                  {task.proofType === 'photo' ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Upload a photo proving you've completed this quest:</p>
+                      <div className="p-6 border-2 border-dashed border-secondary/30 rounded-lg text-center">
+                        <p className="text-xs text-muted-foreground">
+                          Photo upload will be enabled in a future update. Please provide a text description for now.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Provide a brief description of how you completed this quest:</p>
+                      <textarea
+                        className="w-full h-24 bg-background border border-border rounded-lg p-2 text-sm"
+                        placeholder="How did you complete this quest?"
+                        value={proof}
+                        onChange={(e) => setProof(e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  )}
+                </div>
                 
-                <button 
-                  className="bg-primary rounded-lg px-4 py-2 text-sm text-primary-foreground"
-                  onClick={handleCompleteTask}
-                  disabled={completeTask.isPending}
-                >
-                  {completeTask.isPending ? 'Completing...' : 'Complete Quest'}
-                </button>
+                <div className="flex justify-between">
+                  <button 
+                    className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                  >
+                    Close
+                  </button>
+                  
+                  <button 
+                    className="bg-primary rounded-lg px-4 py-2 text-sm text-primary-foreground"
+                    onClick={handleCompleteTask}
+                    disabled={completeTask.isPending || isSubmitting || !proof.trim()}
+                  >
+                    {completeTask.isPending ? 'Completing...' : 'Complete Quest'}
+                  </button>
+                </div>
               </div>
             ) : (
               /* Completed or failed task that can only be closed */

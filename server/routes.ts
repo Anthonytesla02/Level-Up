@@ -701,14 +701,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tasks/accept-suggestion", ensureAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const taskData = insertTaskSchema.parse(req.body);
+      
+      // Make sure expiresAt is properly parsed as a Date
+      const taskData = {
+        ...req.body,
+        userId: user.id,
+        createdBy: "suggestion",
+        // If expiresAt is a string, convert it to a Date
+        expiresAt: req.body.expiresAt && typeof req.body.expiresAt === 'string' 
+          ? new Date(req.body.expiresAt) 
+          : req.body.expiresAt
+      };
+      
+      // Parse with the schema to ensure validation
+      const validTaskData = insertTaskSchema.parse(taskData);
       
       // Create the suggested task
-      const task = await storage.createTask({
-        ...taskData,
-        userId: user.id,
-        createdBy: "suggestion"
-      });
+      const task = await storage.createTask(validTaskData);
       
       // Create punishment options
       const createPunishments = [
@@ -743,6 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: task
       });
     } catch (error) {
+      console.error("Error accepting task suggestion:", error);
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         return res.status(400).json({ message: validationError.message });

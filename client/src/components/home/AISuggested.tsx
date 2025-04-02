@@ -39,16 +39,20 @@ export function AISuggested() {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
     
+    // The server will add userId and createdBy internally based on the authenticated user
     acceptTask.mutate({
       title: task.title,
       description: task.description,
       difficulty: task.difficulty,
       xpReward: task.xpReward,
-      proofType: task.proofType,
-      expiresAt,
-      category: task.category,
-      aiRecommendation: task.aiRecommendation,
-      isSpecialChallenge: task.isSpecialChallenge || false
+      proofType: task.proofType || 'text',
+      // Make sure expiresAt is a Date object
+      expiresAt: expiresAt,
+      category: task.category || 'General',
+      aiRecommendation: task.aiRecommendation || '',
+      isSpecialChallenge: task.isSpecialChallenge || false,
+      createdBy: 'suggestion',
+      status: 'active'
     }, {
       onSuccess: () => {
         toast({
@@ -57,8 +61,12 @@ export function AISuggested() {
           variant: "default"
         });
         setSelectedTask(null);
+        
+        // Refetch tasks to ensure the UI is updated
+        refetch();
       },
       onError: (error) => {
+        console.error("Error accepting task:", error);
         toast({
           title: "Failed to accept quest",
           description: error.message,
