@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModernWear - Premium Men's Fashion</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #2D3250;
+      --accent: #F8B179;
+      --background: #F6F5F5;
+      --text: #2D3250;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .navbar {
+      background: var(--primary);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .menu-icon {
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      margin-right: 1rem;
+    }
+
+    .cart-icon {
+      color: white;
+      position: relative;
+      padding: 0.5rem;
+    }
+
+    .cart-count {
+      background: var(--accent);
+      padding: 2px 6px;
+      border-radius: 50%;
+      font-size: 0.8rem;
+      position: absolute;
+      top: -5px;
+      right: -5px;
+    }
+
+    .filters {
+      padding: 1rem;
+      background: white;
+      display: flex;
+      gap: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+
+    select {
+      padding: 0.5rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      min-width: 160px;
+      background: white;
+      flex-shrink: 0;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .product-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+    }
+
+    .shipping-tag {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+    }
+
+    .product-info {
+      padding: 1rem;
+    }
+
+    .add-to-cart {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .add-to-cart:hover {
+      background: var(--accent);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1001;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .page {
+      display: none;
+      padding: 1rem;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .cart-item {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .checkout-form {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .order-section {
+      margin: 1rem 0;
+    }
+
+    .order-card {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      margin: 1rem 0;
+    }
+
+    .order-status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin: 0.5rem 0;
+    }
+
+    .new {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .completed {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      width: 200px;
+    }
+
+    .menu-dropdown.show {
+      display: block;
+    }
+
+    .menu-item {
+      padding: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .menu-item:hover {
+      background: #f5f5f5;
+    }
+
+    .remove-icon {
+      color: #ff4444;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+
+    .cart-total {
+      font-weight: bold;
+      font-size: 1.2rem;
+      margin: 1rem 0;
+      text-align: right;
+    }
+
+    .order-total {
+      margin: 0.5rem 0;
+      font-weight: bold;
+    }
+
+    /* Styles for the image slider in the modal */
+    .image-slider {
+      position: relative;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    .image-slider img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .image-slider button {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .image-slider #prevBtn {
+      left: 10px;
+    }
+    .image-slider #nextBtn {
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div style="display: flex; align-items: center;">
+      <i class="fas fa-bars menu-icon" id="menuToggle"></i>
+      <div class="logo">MODERNWEAR</div>
+    </div>
+    <div class="cart-icon" id="cartIcon">
+      <i class="fas fa-shopping-cart"></i>
+      <span class="cart-count">0</span>
+    </div>
+    <div class="menu-dropdown" id="menuDropdown">
+      <div class="menu-item" onclick="showPage('home')">Home</div>
+      <div class="menu-item" onclick="showPage('orders')">Orders</div>
+      <div class="menu-item" onclick="showPage('settings')">Settings</div>
+    </div>
+  </nav>
+
+  <div class="page active" id="homePage">
+    <div class="filters">
+      <select id="typeFilter">
+        <option value="">All Types</option>
+        <option>Shirt</option>
+        <option>Trousers</option>
+        <option>Shoes</option>
+        <option>Accessories</option>
+      </select>
+
+      <select id="priceFilter">
+        <option value="">Price Range</option>
+        <option value="0-100">Under 100 GHS</option>
+        <option value="100-300">100 - 300 GHS</option>
+        <option value="300-500">300 - 500 GHS</option>
+        <option value="500-1000">500+ GHS</option>
+      </select>
+
+      <select id="shippingFilter">
+        <option value="">Shipping From</option>
+        <option>Ship from Abroad</option>
+        <option>Express</option>
+        <option>Normal</option>
+      </select>
+    </div>
+    <div class="products-grid" id="productsContainer"></div>
+  </div>
+
+  <div class="page" id="cartPage">
+    <div class="checkout-form">
+      <h2>Checkout</h2>
+      <div id="cartItems"></div>
+      <input type="text" id="customerName" placeholder="Full Name" required>
+      <input type="tel" id="customerPhone" placeholder="Phone Number" required>
+      <button class="add-to-cart" onclick="processCheckout()">Complete Checkout</button>
+    </div>
+  </div>
+
+  <div class="page" id="ordersPage">
+    <div class="order-section">
+      <h2>New Orders</h2>
+      <div id="newOrders"></div>
+    </div>
+    <div class="order-section">
+      <h2>Completed Orders</h2>
+      <div id="completedOrders"></div>
+    </div>
+  </div>
+
+  <div class="page" id="settingsPage">
+    <h2>Settings</h2>
+    <p>No settings available at this time</p>
+  </div>
+
+  <div class="modal" id="productModal">
+    <div class="modal-content">
+      <span class="close-modal" id="closeModal">&times;</span>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    let products = [];
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    let orders = JSON.parse(localStorage.getItem('orders')) || [];
+    const cartCount = document.querySelector('.cart-count');
+
+    const filters = {
+      type: '',
+      price: '',
+      shipping: ''
+    };
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+      document.getElementById(`${pageId}Page`).classList.add('active');
+      document.getElementById('menuDropdown').classList.remove('show');
+      
+      if (pageId === 'orders') renderOrders();
+      if (pageId === 'cart') renderCartItems();
+    }
+
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('menuDropdown').classList.toggle('show');
+    });
+
+    function addToCart(productId) {
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        cart.push(product);
+        updateCartCount();
+        localStorage.setItem('cart', JSON.stringify(cart));
+      }
+    }
+
+    function updateCartCount() {
+      cartCount.textContent = cart.length;
+    }
+
+    function renderCartItems() {
+      const container = document.getElementById('cartItems');
+      container.innerHTML = '';
+      let total = 0;
+      
+      cart.forEach((item, index) => {
+        total += item.price;
+        container.innerHTML += `
+          <div class="cart-item">
+            <div>
+              <h3>${item.name}</h3>
+              <p>GHS ${item.price}</p>
+              <p style="font-size: 0.8rem; color: #666;">Shipping: ${item.from}</p>
+            </div>
+            <i class="fas fa-times remove-icon" onclick="removeFromCart(${index})"></i>
+          </div>
+        `;
+      });
+      
+      container.innerHTML += `
+        <div class="cart-total">
+          Total: GHS ${total.toFixed(2)}
+        </div>
+      `;
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      updateCartCount();
+      localStorage.setItem('cart', JSON.stringify(cart));
+      renderCartItems();
+    }
+
+    function processCheckout() {
+      const name = document.getElementById('customerName').value;
+      const phone = document.getElementById('customerPhone').value;
+      if (!name || !phone) {
+        alert('Please fill in all required fields');
+        return;
+      }
+      
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+      
+      const order = {
+        id: Date.now(),
+        date: new Date().toLocaleString(),
+        items: cart.map(item => ({
+          name: item.name,
+          price: item.price,
+          size: item.sizes ? item.sizes[0] : 'N/A',
+          from: item.from
+        })),
+        customer: { name, phone },
+        deliveryDate: calculateDeliveryDate(),
+        status: 'new',
+        total: total
+      };
+      
+      orders.push(order);
+      localStorage.setItem('orders', JSON.stringify(orders));
+      cart = [];
+      localStorage.removeItem('cart');
+      updateCartCount();
+      showPage('orders');
+    }
+
+    function calculateDeliveryDate() {
+      const hasAbroadItem = cart.some(item => item.from === "Ship from Abroad");
+      const today = new Date();
+      let deliveryDate = new Date(today);
+
+      if (hasAbroadItem) {
+        // For items shipped from abroad: current date +35 days + days to next Sunday
+        deliveryDate.setDate(deliveryDate.getDate() + 35);
+        const day = deliveryDate.getDay();
+        const daysToAdd = day === 0 ? 0 : 7 - day;
+        deliveryDate.setDate(deliveryDate.getDate() + daysToAdd);
+      } else {
+        // Original logic for local items: current date +5 days + days to next Monday
+        deliveryDate.setDate(deliveryDate.getDate() + 5);
+        const day = deliveryDate.getDay();
+        const daysToAdd = day === 0 ? 7 : 7 - day;
+        deliveryDate.setDate(deliveryDate.getDate() + daysToAdd);
+      }
+
+      return deliveryDate.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+    }
+
+    function renderOrders() {
+      const newOrdersContainer = document.getElementById('newOrders');
+      const completedOrdersContainer = document.getElementById('completedOrders');
+      newOrdersContainer.innerHTML = '';
+      completedOrdersContainer.innerHTML = '';
+
+      orders.forEach(order => {
+        const orderHTML = `
+          <div class="order-card">
+            <h3>Order #${order.id}</h3>
+            <p>Date: ${order.date}</p>
+            <p>Customer: ${order.customer.name}</p>
+            <p>Phone: ${order.customer.phone}</p>
+            <p>Delivery Date: ${order.deliveryDate}</p>
+            <div class="order-total">Total: GHS ${order.total.toFixed(2)}</div>
+            <div class="order-status ${order.status}">${order.status}</div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              ${order.status === 'new' ? 
+                `<button class="add-to-cart" onclick="markOrderComplete(${order.id})">Mark Complete</button>` :
+                `<i class="fas fa-trash remove-icon" onclick="deleteOrder(${order.id})"></i>`
+              }
+            </div>
+          </div>
+        `;
+        if (order.status === 'new') {
+          newOrdersContainer.innerHTML += orderHTML;
+        } else {
+          completedOrdersContainer.innerHTML += orderHTML;
+        }
+      });
+    }
+
+    function markOrderComplete(orderId) {
+      orders = orders.map(order => order.id === orderId ? { ...order, status: 'completed' } : order);
+      localStorage.setItem('orders', JSON.stringify(orders));
+      renderOrders();
+    }
+
+    function deleteOrder(orderId) {
+      orders = orders.filter(order => order.id !== orderId);
+      localStorage.setItem('orders', JSON.stringify(orders));
+      renderOrders();
+    }
+
+    function filterProducts() {
+      return products.filter(product => {
+        const typeMatch = !filters.type || product.type === filters.type;
+        const shippingMatch = !filters.shipping || product.from === filters.shipping;
+        let priceMatch = true;
+        if (filters.price) {
+          const [min, max] = filters.price.split('-').map(Number);
+          priceMatch = product.price >= min && product.price <= max;
+        }
+        return typeMatch && priceMatch && shippingMatch;
+      });
+    }
+
+    function updateFilter(filterType, value) {
+      filters[filterType] = value;
+      renderProducts();
+    }
+
+    document.getElementById('typeFilter').addEventListener('change', (e) => {
+      updateFilter('type', e.target.value);
+    });
+    document.getElementById('priceFilter').addEventListener('change', (e) => {
+      updateFilter('price', e.target.value);
+    });
+    document.getElementById('shippingFilter').addEventListener('change', (e) => {
+      updateFilter('shipping', e.target.value);
+    });
+
+    function renderProducts() {
+      const container = document.getElementById('productsContainer');
+      container.innerHTML = '';
+      filterProducts().forEach(product => {
+        const productCard = document.createElement('div');
+        productCard.className = 'product-card';
+        productCard.innerHTML = `
+          <img src="${product.images && product.images.length ? product.images[0] : ''}" class="product-image" alt="${product.name}">
+          <div class="shipping-tag">${product.from}</div>
+          <div class="product-info">
+            <h3>${product.name}</h3>
+            <p>GHS ${product.price}</p>
+            <button class="add-to-cart" onclick="event.stopPropagation(); addToCart(${product.id})">
+              Add to Cart
+            </button>
+          </div>
+        `;
+        productCard.addEventListener('click', () => showProductDetails(product));
+        container.appendChild(productCard);
+      });
+    }
+
+    function showProductDetails(product) {
+      const modal = document.getElementById('productModal');
+      const modalBody = document.getElementById('modalBody');
+      let sliderHTML = '';
+      if (product.images && product.images.length) {
+        if (product.images.length > 1) {
+          sliderHTML = `
+            <div class="image-slider" id="imageSlider">
+              <button id="prevBtn">&#10094;</button>
+              <img id="sliderImage" src="${product.images[0]}" alt="${product.name}">
+              <button id="nextBtn">&#10095;</button>
+            </div>
+          `;
+        } else {
+          sliderHTML = `<div class="image-slider"><img src="${product.images[0]}" alt="${product.name}"></div>`;
+        }
+      }
+      modalBody.innerHTML = `
+        <h2>${product.name}</h2>
+        ${sliderHTML}
+        <p>Price: GHS ${product.price}</p>
+        <p>Type: ${product.type}</p>
+        <p>Shipping: ${product.from}</p>
+        <p style="margin-top: 1rem; font-weight: bold;">Product Website:</p>
+        <a href="${product.url}" target="_blank" style="color: var(--accent); text-decoration: none;">Visit Website</a>
+        <button class="add-to-cart" style="margin-top: 1rem;" onclick="addToCart(${product.id}); closeModal()">Add to Cart</button>
+      `;
+      modal.style.display = 'flex';
+
+      if (product.images && product.images.length > 1) {
+        let currentIndex = 0;
+        const sliderImage = document.getElementById('sliderImage');
+        document.getElementById('prevBtn').addEventListener('click', () => {
+          currentIndex = (currentIndex === 0) ? product.images.length - 1 : currentIndex - 1;
+          sliderImage.src = product.images[currentIndex];
+        });
+        document.getElementById('nextBtn').addEventListener('click', () => {
+          currentIndex = (currentIndex === product.images.length - 1) ? 0 : currentIndex + 1;
+          sliderImage.src = product.images[currentIndex];
+        });
+      }
+    }
+
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    function closeModal() {
+      document.getElementById('productModal').style.display = 'none';
+    }
+
+    fetch('products.json')
+      .then(response => response.json())
+      .then(data => {
+        products = data.map((p, index) => ({ ...p, id: index + 1 }));
+        renderProducts();
+      })
+      .catch(() => {
+        products = [{
+          id: 1,
+          name: "Premium Cotton Shirt",
+          price: 250,
+          sizes: ["S", "M", "L", "XL"],
+          type: "Shirt",
+          from: "Express",
+          images: ["shirt.jpg", "shirt1.jpg"],
+          url: "#"
+        }];
+        renderProducts();
+      });
+
+    document.getElementById('cartIcon').addEventListener('click', () => showPage('cart'));
+    updateCartCount();
+  </script>
+</body>
+</html>

@@ -7,9 +7,10 @@ interface TaskDetailModalProps {
   task: Task;
   onClose: () => void;
   onAccept?: (task: Task) => void;
+  onComplete?: () => void;
 }
 
-export function TaskDetailModal({ task, onClose, onAccept }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, onClose, onAccept, onComplete }: TaskDetailModalProps) {
   const { useCompleteTask } = useAirtable();
   const completeTask = useCompleteTask();
   const { playSound } = useSound();
@@ -37,10 +38,18 @@ export function TaskDetailModal({ task, onClose, onAccept }: TaskDetailModalProp
   
   const handleCompleteTask = () => {
     playSound('buttonClick');
-    completeTask.mutate({ 
-      taskId: task.id,
-      proof: "Completed via button" 
-    });
+    
+    // If we have an external completion handler, use it
+    if (onComplete) {
+      onComplete();
+    } else {
+      // Otherwise use the default handler
+      completeTask.mutate({ 
+        taskId: task.id,
+        proof: "Completed via button" 
+      });
+    }
+    
     onClose();
   };
 

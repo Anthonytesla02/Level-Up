@@ -127,10 +127,11 @@ export function useAirtable() {
   const useAcceptAiTask = () => {
     const mutation = useMutation({
       mutationFn: (task: Partial<Task>) => 
-        apiRequest('POST', '/api/tasks', task),
+        apiRequest('POST', '/api/tasks/accept-suggestion', task),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
         queryClient.invalidateQueries({ queryKey: ['/api/tasks/active'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/ai/suggest'] });
       }
     });
 

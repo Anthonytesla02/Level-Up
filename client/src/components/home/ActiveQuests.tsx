@@ -5,11 +5,14 @@ import { Task } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TaskDetailModal } from '@/components/modals/TaskDetailModal';
 import { useSound } from '@/hooks/useSound';
+import { useToast } from '@/hooks/use-toast';
 
 export function ActiveQuests() {
-  const { useActiveTasks } = useAirtable();
+  const { useActiveTasks, useCompleteTask } = useAirtable();
   const { data: tasks = [] as Task[], isLoading } = useActiveTasks();
   const { playSound } = useSound();
+  const { toast } = useToast();
+  const completeTask = useCompleteTask();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
@@ -21,6 +24,30 @@ export function ActiveQuests() {
   const handleCloseTaskDetail = () => {
     playSound('buttonClick');
     setSelectedTask(null);
+  };
+  
+  const handleCompleteTask = (taskId: number) => {
+    playSound('taskComplete');
+    completeTask.mutate({ 
+      taskId: taskId,
+      proof: "Completed via button" 
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Quest completed!",
+          description: "You've earned XP for completing this quest",
+          variant: "default"
+        });
+        setSelectedTask(null);
+      },
+      onError: (error) => {
+        toast({
+          title: "Failed to complete quest",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    });
   };
 
   return (
@@ -77,7 +104,8 @@ export function ActiveQuests() {
       {selectedTask && (
         <TaskDetailModal 
           task={selectedTask} 
-          onClose={handleCloseTaskDetail} 
+          onClose={handleCloseTaskDetail}
+          onComplete={() => handleCompleteTask(selectedTask.id)}
         />
       )}
     </>

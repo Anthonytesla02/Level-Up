@@ -3,6 +3,7 @@ import { useAirtable } from '@/hooks/useAirtable';
 import { useMistralAI } from '@/hooks/useMistralAI';
 import { Task } from '@shared/schema';
 import { useSound } from '@/hooks/useSound';
+import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TaskDetailModal } from '@/components/modals/TaskDetailModal';
 
@@ -11,6 +12,7 @@ export function AISuggested() {
   const { useGenerateDailyTasks } = useMistralAI();
   const { data: activeTasks = [] as Task[] } = useActiveTasks();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const { toast } = useToast();
   
   // Set frequencies for difficulty levels (15% Easy, 35% Medium, 50% Hard)
   const getWeightedRandomDifficulty = () => {
@@ -47,6 +49,22 @@ export function AISuggested() {
       category: task.category,
       aiRecommendation: task.aiRecommendation,
       isSpecialChallenge: task.isSpecialChallenge || false
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Quest accepted!",
+          description: "New quest added to your active quests",
+          variant: "default"
+        });
+        setSelectedTask(null);
+      },
+      onError: (error) => {
+        toast({
+          title: "Failed to accept quest",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     });
   };
   
