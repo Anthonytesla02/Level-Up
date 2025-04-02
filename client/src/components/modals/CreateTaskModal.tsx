@@ -6,6 +6,7 @@ import { useAirtable } from '@/hooks/useAirtable';
 import { useMistralAI } from '@/hooks/useMistralAI';
 import { useSound } from '@/hooks/useSound';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 interface CreateTaskModalProps {
   onClose: () => void;
@@ -29,6 +30,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const { playSound } = useSound();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createTaskSchema),
@@ -73,6 +75,16 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         amount: difficulty === "easy" ? 25 : (difficulty === "medium" ? 20 : 35)
       };
 
+      // Make sure the user is logged in
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to create a quest. Please log in and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Create the task with auto-generated failure penalty and additional fields
       await createTask.mutateAsync({
         title: data.title,
@@ -82,10 +94,9 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         proofType: data.proofType,
         expiresAt,
         createdBy: "user",
-        category: "user-created", // Add missing required field
-        failurePenalty,
-        userId: 1, // Placeholder - replace with actual user ID
-        status: 'active' // Add status field.
+        category: "user-created",
+        failurePenalty
+        // Server will handle adding the userId from the authenticated user
       });
 
       toast({

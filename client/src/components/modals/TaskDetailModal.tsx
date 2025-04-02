@@ -1,11 +1,20 @@
 import { Task } from '@shared/schema';
+import { useAirtable } from '@/hooks/useAirtable';
+import { useSound } from '@/hooks/useSound';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskDetailModalProps {
   task: Task;
   onClose: () => void;
+  onAccept?: (task: Task) => void;
 }
 
-export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, onClose, onAccept }: TaskDetailModalProps) {
+  const { useCompleteTask } = useAirtable();
+  const completeTask = useCompleteTask();
+  const { playSound } = useSound();
+  const { toast } = useToast();
+  
   const difficultyColor = task.difficulty === 'easy' 
     ? 'text-[#22C55E]' 
     : task.difficulty === 'medium' 
@@ -17,6 +26,23 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     : task.difficulty === 'medium' 
       ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30' 
       : 'bg-[#EF4444]/10 border-[#EF4444]/30';
+      
+  const handleAccept = () => {
+    if (onAccept) {
+      playSound('buttonClick');
+      onAccept(task);
+      onClose();
+    }
+  };
+  
+  const handleCompleteTask = () => {
+    playSound('buttonClick');
+    completeTask.mutate({ 
+      taskId: task.id,
+      proof: "Completed via button" 
+    });
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-background/90">
@@ -85,6 +111,56 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Show different buttons based on whether this is an active task or an AI suggestion */}
+        <div className="pt-4 border-t border-border">
+          {onAccept ? (
+            /* AI suggestion task that can be accepted */
+            <div className="flex justify-between">
+              <button 
+                className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground"
+                onClick={onClose}
+              >
+                Close
+              </button>
+              
+              <button 
+                className="bg-primary rounded-lg px-4 py-2 text-sm text-primary-foreground"
+                onClick={handleAccept}
+              >
+                Accept Quest
+              </button>
+            </div>
+          ) : (
+            /* Active task that can be completed */
+            task.status === 'active' ? (
+              <div className="flex justify-between">
+                <button 
+                  className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground"
+                  onClick={onClose}
+                >
+                  Close
+                </button>
+                
+                <button 
+                  className="bg-primary rounded-lg px-4 py-2 text-sm text-primary-foreground"
+                  onClick={handleCompleteTask}
+                  disabled={completeTask.isPending}
+                >
+                  {completeTask.isPending ? 'Completing...' : 'Complete Quest'}
+                </button>
+              </div>
+            ) : (
+              /* Completed or failed task that can only be closed */
+              <button 
+                className="w-full bg-muted rounded-lg px-4 py-2 text-sm text-foreground"
+                onClick={onClose}
+              >
+                Close
+              </button>
+            )
+          )}
         </div>
       </div>
     </div>

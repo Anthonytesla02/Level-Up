@@ -215,7 +215,8 @@ export function AISuggested() {
       {selectedTask && (
         <TaskDetailModal 
           task={selectedTask} 
-          onClose={handleCloseDetails} 
+          onClose={handleCloseDetails}
+          onAccept={handleAcceptQuest}
         />
       )}
     </div>
