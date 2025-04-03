@@ -17,10 +17,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { useSound } from 'use-sound'; // Assuming this is your sound library import
+
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const { playSound } = useSound();
+
+  const handleTabChange = (value: string) => {
+    playSound('tabClick'); // Play sound on tab click
+    setActiveTab(value as "login" | "register");
+    handleClick(value); //Added to address the blank page issue
+  };
+
+  const handleClick = (value: string) => {
+      // Placeholder function - needs to be replaced with actual tab logic
+      console.log(`Tab clicked: ${value}`);
+  };
 
   // If user is already logged in, redirect to home
   if (user) {
@@ -42,7 +56,7 @@ export default function AuthPage() {
           <Tabs
             defaultValue="login"
             value={activeTab}
-            onValueChange={(v) => setActiveTab(v as "login" | "register")}
+            onValueChange={handleTabChange} // Use the new handler
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2">
