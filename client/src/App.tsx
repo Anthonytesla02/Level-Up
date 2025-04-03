@@ -15,6 +15,7 @@ import Achievements from "@/pages/achievements";
 import Profile from "@/pages/profile";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
+import DatabaseSetup from "@/pages/database-setup";
 
 // Modals
 import { PunishmentModal } from "@/components/modals/PunishmentModal";
@@ -126,6 +127,7 @@ function Router() {
       <Switch>
         {/* Auth route - accessible to everyone */}
         <Route path="/auth" component={AuthPage} />
+        <Route path="/database-setup" component={DatabaseSetup} />
         
         {/* Protected routes - only accessible when authenticated */}
         <ProtectedRoute path="/" component={Home} />
