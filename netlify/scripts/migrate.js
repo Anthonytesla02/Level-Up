@@ -1,8 +1,13 @@
 // Script to run database migrations for Netlify deployment
-const { neon } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-http');
-const { migrate } = require('drizzle-orm/neon-http/migrator');
-const path = require('path');
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { migrate } from 'drizzle-orm/neon-http/migrator';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current file directory (equivalent of __dirname in CommonJS)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Main migration function
 async function runMigrations() {

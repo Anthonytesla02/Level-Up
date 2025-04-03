@@ -1,7 +1,12 @@
 // Netlify build script for setting up the database before deployment
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// Get current file directory (equivalent of __dirname in CommonJS)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Ensure drizzle directory exists
 const drizzleDir = path.join(__dirname, '..', 'drizzle');
@@ -28,7 +33,7 @@ if (process.env.NETLIFY && process.env.DATABASE_URL) {
     const migrationScriptPath = path.join(__dirname, 'scripts/migrate.js');
     if (fs.existsSync(migrationScriptPath)) {
       console.log('Running database migrations...');
-      execSync(`node ${migrationScriptPath}`, { stdio: 'inherit' });
+      execSync(`node --experimental-specifier-resolution=node ${migrationScriptPath}`, { stdio: 'inherit' });
       console.log('Database migrations applied successfully!');
     } else {
       console.warn('Migration script not found at:', migrationScriptPath);
