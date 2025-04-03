@@ -49,4 +49,14 @@ if (process.env.NETLIFY && process.env.DATABASE_URL) {
   console.log('Database will need to be set up after deployment');
 }
 
+// Copy _redirects file to ensure proper routing in Netlify
+try {
+  console.log('Copying _redirects file to dist folder...');
+  execSync('node scripts/copy-redirects.js', { stdio: 'inherit' });
+  console.log('_redirects file copied successfully!');
+} catch (error) {
+  console.error('Error copying _redirects file:', error);
+  // Continue anyway as the netlify.toml redirects should still work
+}
+
 console.log('Build script completed successfully');
