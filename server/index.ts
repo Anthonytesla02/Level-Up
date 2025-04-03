@@ -69,6 +69,16 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`serving on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
+  });
+
+  // Keep the server alive
+  process.on('SIGTERM', () => {
+    log('Received SIGTERM signal, keeping alive');
+  });
+
+  // Handle uncaught errors
+  process.on('uncaughtException', (err) => {
+    log('Uncaught exception:', err);
   });
 })();
