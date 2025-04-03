@@ -1,0 +1,29 @@
+After successfully deploying my app, I got this error message: Page not found Looks like you’ve followed a broken link or entered a URL that doesn’t exist on this site. If this is your site, and you weren’t expecting a 404 for this path, please visit Netlify’s “page not found” support guide for tro
+Based on the knowledge sources, there are several common reasons why you might be seeing a "Page not found" error after successfully deploying your app on Netlify. Here are the most likely causes and solutions:
+
+Common Causes for "Page not found" Errors
+Incorrect Publish Directory: Your build settings might be pointing to the wrong folder. Check your deploy settings in the Netlify UI under Configuration > Build & deploy > Build settings to confirm you're publishing from the correct folder Build troubleshooting tips.
+
+Missing Build Configuration: If you're deploying a project that requires building (like React, Vue, etc.), you need to set the proper build configuration. Without it, Netlify might just be deploying your source files instead of the built site.
+
+Client-side Routing Issues: For single-page applications (SPAs) with client-side routing, you need to configure redirects to handle routes properly.
+
+Solutions to Try
+Add a Redirects File: Create a _redirects file in your publish directory with:
+
+/* /index.html 200
+This redirects all requests to your index.html file, which is essential for SPAs.
+
+Create a netlify.toml File: As one user successfully solved their issue by adding:
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+Place this file in your build/publish directory Forum Post: Error " Page Not Found".
+
+Check Your Build Settings: Make sure your build command and publish directory are correctly set. For example, for a React app, the publish directory is typically build or dist.
+
+Verify Your File Structure: Ensure your project has an index.html file in the root of your publish directory.
+
+Check for Framework-Specific Requirements: Some frameworks like Next.js require specific plugins (e.g., @netlify/plugin-nextjs) Forum Post: Page Not found after deployment.
