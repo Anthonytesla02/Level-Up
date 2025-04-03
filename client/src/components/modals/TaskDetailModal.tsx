@@ -11,7 +11,14 @@ interface TaskDetailModalProps {
   onComplete?: () => void;
 }
 
+import { useSound } from '@/hooks/useSound';
+
 export function TaskDetailModal({ task, onClose, onAccept, onComplete }: TaskDetailModalProps) {
+  const { playSound } = useSound();
+  
+  useEffect(() => {
+    playSound('modal');
+  }, []);
   const { useCompleteTask } = useAirtable();
   const completeTask = useCompleteTask();
   const { playSound } = useSound();

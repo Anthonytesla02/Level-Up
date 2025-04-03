@@ -1,15 +1,18 @@
+
 import { useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 
 // Sound types
-type SoundType = 'levelUp' | 'taskComplete' | 'taskFailed' | 'buttonClick';
+type SoundType = 'levelUp' | 'taskComplete' | 'taskFailed' | 'buttonClick' | 'tabClick' | 'modal';
 
 // Sound URLs
 const SOUND_URLS: Record<SoundType, string> = {
-  levelUp: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=success-1-6297.mp3',
+  levelUp: '/Solo Grind levelup.mp3',
   taskComplete: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a73467.mp3?filename=message-incoming-132126.mp3',
   taskFailed: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_12b0c7443c.mp3?filename=error-126627.mp3',
-  buttonClick: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_3ad2c171ed.mp3?filename=click-21156.mp3'
+  buttonClick: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_3ad2c171ed.mp3?filename=click-21156.mp3',
+  tabClick: '/Solo Grind tabs.mp3',
+  modal: '/Solo Grind modal.mp3'
 };
 
 // Cache for loaded sound instances
@@ -17,7 +20,9 @@ const soundInstances: Record<SoundType, Howl | null> = {
   levelUp: null,
   taskComplete: null,
   taskFailed: null,
-  buttonClick: null
+  buttonClick: null,
+  tabClick: null,
+  modal: null
 };
 
 export function useSound() {
