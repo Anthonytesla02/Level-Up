@@ -1,5 +1,6 @@
+
 import { Task } from '@shared/schema';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAirtable } from '@/hooks/useAirtable';
 import { useSound } from '@/hooks/useSound';
 import { useToast } from '@/hooks/use-toast';
@@ -11,8 +12,6 @@ interface TaskDetailModalProps {
   onComplete?: () => void;
 }
 
-import { useSound } from '@/hooks/useSound';
-
 export function TaskDetailModal({ task, onClose, onAccept, onComplete }: TaskDetailModalProps) {
   const { playSound } = useSound();
   
@@ -21,7 +20,6 @@ export function TaskDetailModal({ task, onClose, onAccept, onComplete }: TaskDet
   }, []);
   const { useCompleteTask } = useAirtable();
   const completeTask = useCompleteTask();
-  const { playSound } = useSound();
   const { toast } = useToast();
   
   const difficultyColor = task.difficulty === 'easy' 
